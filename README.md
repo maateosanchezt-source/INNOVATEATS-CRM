@@ -2,7 +2,7 @@
 
 Internal, single-tenant operating system for evidence-based CPG research, compliant outreach, and high-quality sales handoff.
 
-## Current status: Phase 4
+## Current status: Phase 5
 
 Foundations establish:
 
@@ -53,7 +53,20 @@ Phase 4 adds message strategy and human approval:
 - database enforcement of same-lead evidence and `https://innovateats.com` in every email;
 - authenticated generation, editing, evidence review, and approval controls in the lead view.
 
-Research, contact enrichment, and message generation remain disabled by default and each requires both configuration and a database feature flag. No scheduling or real email sending is possible in Phase 4.
+Phase 5 adds durable, reputation-safe email sequencing:
+
+- transactional sequence/outbound/outbox creation with deterministic workflow and idempotency IDs;
+- Temporal touches on days 1, 4 and 10 in the recipient's preferred local window;
+- a one-attempt Gmail dispatch boundary that stops on ambiguous provider outcomes;
+- OAuth restricted to Mateo and the narrow Gmail send scope, with append-only encrypted grants;
+- RFC-compliant plain-text messages and Gmail thread preservation;
+- suppression, campaign/sender/global kill switches, rolling caps and immediate pre-send revalidation;
+- dry-run, Mateo-only sandbox and separately approved production modes;
+- authenticated scheduling, pause, resume, cancel, Gmail connection and delivery ledger controls.
+
+Research, contact enrichment, message generation, and external email remain disabled by default.
+Dry-run scheduling can exercise the complete durable path without contacting Gmail. Production
+delivery is not approved.
 
 ## Prerequisites
 
@@ -108,3 +121,4 @@ CRM verification is documented in `docs/testing/phase-1-verification.md`.
 Research-engine verification is documented in `docs/testing/phase-2-verification.md`.
 Contact-engine verification is documented in `docs/testing/phase-3-verification.md`.
 Message and approval verification is documented in `docs/testing/phase-4-verification.md`.
+Gmail and durable-sequence verification is documented in `docs/testing/phase-5-verification.md`.

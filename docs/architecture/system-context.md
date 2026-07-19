@@ -34,3 +34,16 @@ Email validation is layered: syntax, MX availability, and an optional replaceabl
 The message pipeline accepts a typed strategy brief tied to one actionable email contact and active lead evidence. Deterministic policy selects whether Mateo credentials fit the opportunity, constrains the three-touch sequence, validates factual spans, and scores factuality, specificity, and sales quality.
 
 Strategy briefs, generated drafts, human edits, and approval decisions are separate records. Drafts and briefs are immutable; an edit creates a linear successor. Approval is attached to one latest QA-passed version and never follows later edits. Message generation is gated independently, while scheduling and sending remain outside the Phase 4 boundary.
+
+## Delivery boundary
+
+The web transaction writes a sequence, three immutable outbound rows, and an outbox event. The worker
+recovers the outbox event and starts one deterministic Temporal workflow. Durable timers and signals
+coordinate the local-time window, pause, resume and cancel operations.
+
+Immediately before an external action, PostgreSQL locks the outbound row and revalidates both safety
+layers, suppression, current approval, contact, campaign, sender, credential, kill switches and caps.
+Only the winner can transition `scheduled` to `sending`. Gmail dispatch has one activity attempt.
+Provider ambiguity becomes `delivery_unknown`, stops the sequence, and requires manual
+reconciliation. Thread ID, `Message-ID`, `References`, and `In-Reply-To` preserve one Gmail
+conversation.

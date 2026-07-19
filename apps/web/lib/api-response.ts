@@ -8,6 +8,7 @@ import {
   LeadNotFoundError,
   MessageDraftNotFoundError,
   MessageStateError,
+  OutreachStateError,
   ResearchStateError
 } from "@innovateats/db";
 import { SecureFetchError } from "@innovateats/integrations";
@@ -51,6 +52,13 @@ export function apiErrorResponse(error: unknown): Response {
   if (error instanceof MessageStateError) {
     return Response.json(
       { error: { code: "invalid_message_state", message: error.message } },
+      { status: 409 }
+    );
+  }
+
+  if (error instanceof OutreachStateError) {
+    return Response.json(
+      { error: { code: "invalid_outreach_state", message: error.message } },
       { status: 409 }
     );
   }

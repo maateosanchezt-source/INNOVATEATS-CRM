@@ -81,6 +81,7 @@ services:
       AUTHORIZED_EMAIL: maateosanchezt@gmail.com
       BETTER_AUTH_SECRET: local-docker-secret-replace-before-any-shared-use
       GLOBAL_DRY_RUN: "true"
+      GMAIL_DELIVERY_MODE: dry_run
       EMAIL_SEND_ENABLED: "false"
       AUTONOMOUS_SEND_ENABLED: "false"
     ports:
@@ -103,6 +104,7 @@ services:
       TEMPORAL_TASK_QUEUE: innovateats-main
       AUTHORIZED_EMAIL: maateosanchezt@gmail.com
       GLOBAL_DRY_RUN: "true"
+      GMAIL_DELIVERY_MODE: dry_run
       EMAIL_SEND_ENABLED: "false"
       AUTONOMOUS_SEND_ENABLED: "false"
       WORKER_HEALTH_PORT: 3001

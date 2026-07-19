@@ -101,6 +101,35 @@ export {
   type PolicyDecision
 } from "./outbound-safety.js";
 export {
+  dispatchTouchResultSchema,
+  gmailDeliveryModes,
+  gmailDeliveryModeSchema,
+  isIanaTimezone,
+  isPreferredSendWindow,
+  localTimeParts,
+  nextPreferredSendWindow,
+  outboundDeliveryStatuses,
+  outboundDeliveryStatusSchema,
+  outboundIdempotencyKey,
+  outreachSequenceStatuses,
+  outreachSequenceStatusSchema,
+  outreachWorkflowInputSchema,
+  prepareTouchResultSchema,
+  scheduleSequenceInputSchema,
+  sequenceStopReasons,
+  sequenceStopReasonSchema,
+  sequenceWorkflowId,
+  type DispatchTouchResult,
+  type GmailDeliveryMode,
+  type LocalTimeParts,
+  type OutboundDeliveryStatus,
+  type OutreachSequenceStatus,
+  type OutreachWorkflowInput,
+  type PrepareTouchResult,
+  type ScheduleSequenceInput,
+  type SequenceStopReason
+} from "./outreach.js";
+export {
   calculateIcpTotal,
   deriveIcpRecommendedAction,
   entityResolutionDecisionSchema,

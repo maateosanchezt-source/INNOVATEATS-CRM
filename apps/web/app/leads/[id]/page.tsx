@@ -8,13 +8,20 @@ import { AppHeader } from "@/components/app-header";
 import { ContactIntelligence } from "@/components/contact-intelligence";
 import { EvidenceManager } from "@/components/evidence-manager";
 import { MessageApprovalWorkspace } from "@/components/message-approval-workspace";
+import { OutreachControl } from "@/components/outreach-control";
 import { PipelineControl } from "@/components/pipeline-control";
 import { ResearchCaptureForm } from "@/components/research-capture-form";
 import { evaluateContactGate } from "@/lib/contact-policy";
 import { evaluateMessageGenerationGate } from "@/lib/message-policy";
 import { requirePageActor } from "@/lib/page-auth";
 import { evaluateResearchGate } from "@/lib/research-policy";
-import { crmRepository, environment, messageRepository, safetyControlService } from "@/lib/runtime";
+import {
+  crmRepository,
+  environment,
+  messageRepository,
+  outreachRepository,
+  safetyControlService
+} from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +91,7 @@ export default async function LeadDetailPage({
     }
   }
   const messageWorkspace = await messageRepository().getWorkspace(lead.id);
+  const outreachWorkspace = await outreachRepository().getWorkspace(lead.id);
 
   return (
     <main className="dashboardShell">
@@ -245,6 +253,31 @@ export default async function LeadDetailPage({
                   }
           }))
         }}
+      />
+
+      <OutreachControl
+        campaigns={outreachWorkspace.campaigns}
+        contacts={lead.contacts.map((contact) => ({
+          id: contact.id,
+          label: `${contact.fullName ?? contact.role ?? "Business contact"} Â· ${contact.value}`,
+          actionable:
+            !contact.doNotContact &&
+            (contact.channelType === "corporate_email" ||
+              contact.channelType === "named_business_email") &&
+            contactIsActionable(contact.origin, contact.verificationStatus)
+        }))}
+        enabled={lead.status === "approval_pending"}
+        leadId={lead.id}
+        mode={config.GMAIL_DELIVERY_MODE}
+        senders={outreachWorkspace.senders}
+        sequences={outreachWorkspace.sequences.map((sequence) => ({
+          ...sequence,
+          outbounds: sequence.outbounds.map((outbound) => ({
+            ...outbound,
+            scheduledAt: outbound.scheduledAt.toISOString(),
+            sentAt: outbound.sentAt?.toISOString() ?? null
+          }))
+        }))}
       />
 
       {lead.latestScore !== null && (

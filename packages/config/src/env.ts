@@ -22,6 +22,20 @@ const optionalNonEmptyString = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   z.string().min(1).optional()
 );
+const optionalUrl = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.url().optional()
+);
+const optionalBase64Aes256Key = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z
+    .string()
+    .regex(
+      /^[A-Za-z0-9+/]{43}=$/u,
+      "Gmail token encryption key must be a base64-encoded 32-byte key."
+    )
+    .optional()
+);
 
 const serverEnvironmentSchema = z
   .object({
@@ -55,6 +69,13 @@ const serverEnvironmentSchema = z
     OPENAI_CLASSIFIER_MODEL: optionalNonEmptyString,
 
     GMAIL_SENDER_EMAIL: z.email().optional().or(z.literal("")),
+    GMAIL_OAUTH_CLIENT_ID: optionalNonEmptyString,
+    GMAIL_OAUTH_CLIENT_SECRET: optionalNonEmptyString,
+    GMAIL_OAUTH_REDIRECT_URI: optionalUrl,
+    GMAIL_TOKEN_ENCRYPTION_KEY: optionalBase64Aes256Key,
+    GMAIL_DELIVERY_MODE: z.enum(["dry_run", "sandbox", "production"]).default("dry_run"),
+    GMAIL_SANDBOX_RECIPIENT: z.email().default("maateosanchezt@gmail.com"),
+    GMAIL_SANDBOX_SEND_APPROVED: booleanFromEnvironment.default(false),
     GMAIL_POLL_INTERVAL_SECONDS: z.coerce.number().int().min(30).max(3600).default(120),
     REQUIRED_OUTREACH_WEBSITE: z
       .literal("https://innovateats.com")
@@ -90,6 +111,27 @@ const serverEnvironmentSchema = z
       });
     }
 
+    const gmailOAuthValues = [
+      environment.GMAIL_OAUTH_CLIENT_ID,
+      environment.GMAIL_OAUTH_CLIENT_SECRET,
+      environment.GMAIL_OAUTH_REDIRECT_URI,
+      environment.GMAIL_TOKEN_ENCRYPTION_KEY
+    ];
+    const configuredGmailOAuthValues = gmailOAuthValues.filter(
+      (value) => value !== undefined
+    ).length;
+    if (
+      configuredGmailOAuthValues !== 0 &&
+      configuredGmailOAuthValues !== gmailOAuthValues.length
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "GMAIL_OAUTH_CLIENT_ID, GMAIL_OAUTH_CLIENT_SECRET, and GMAIL_TOKEN_ENCRYPTION_KEY must be configured together.",
+        path: ["GMAIL_OAUTH_CLIENT_ID"]
+      });
+    }
+
     if (environment.AUTONOMOUS_SEND_ENABLED && !environment.EMAIL_SEND_ENABLED) {
       context.addIssue({
         code: "custom",
@@ -101,12 +143,49 @@ const serverEnvironmentSchema = z
     if (
       environment.EMAIL_SEND_ENABLED &&
       !environment.GLOBAL_DRY_RUN &&
+      environment.GMAIL_DELIVERY_MODE === "production" &&
       !environment.PRODUCTION_SEND_APPROVED
     ) {
       context.addIssue({
         code: "custom",
         message: "Real email requires PRODUCTION_SEND_APPROVED=true.",
         path: ["PRODUCTION_SEND_APPROVED"]
+      });
+    }
+
+    if (
+      environment.EMAIL_SEND_ENABLED &&
+      !environment.GLOBAL_DRY_RUN &&
+      environment.GMAIL_DELIVERY_MODE === "sandbox" &&
+      !environment.GMAIL_SANDBOX_SEND_APPROVED
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "External sandbox delivery requires GMAIL_SANDBOX_SEND_APPROVED=true.",
+        path: ["GMAIL_SANDBOX_SEND_APPROVED"]
+      });
+    }
+
+    if (
+      environment.GMAIL_DELIVERY_MODE === "sandbox" &&
+      environment.GMAIL_SANDBOX_RECIPIENT.toLowerCase() !==
+        environment.AUTHORIZED_EMAIL.toLowerCase()
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "The Gmail sandbox recipient must be the authorized internal user.",
+        path: ["GMAIL_SANDBOX_RECIPIENT"]
+      });
+    }
+
+    if (
+      environment.GMAIL_DELIVERY_MODE === "production" &&
+      (environment.GMAIL_SENDER_EMAIL === undefined || environment.GMAIL_SENDER_EMAIL === "")
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Production Gmail delivery requires GMAIL_SENDER_EMAIL.",
+        path: ["GMAIL_SENDER_EMAIL"]
       });
     }
 
@@ -158,6 +237,7 @@ export function publicSafetyConfiguration(environment: ServerEnvironment) {
     autonomousSendEnabled: environment.AUTONOMOUS_SEND_ENABLED,
     dryRun: environment.GLOBAL_DRY_RUN,
     emailSendEnabled: environment.EMAIL_SEND_ENABLED,
+    gmailDeliveryMode: environment.GMAIL_DELIVERY_MODE,
     requiredWebsite: environment.REQUIRED_OUTREACH_WEBSITE
   } as const;
 }

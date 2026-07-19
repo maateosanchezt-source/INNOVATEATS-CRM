@@ -17,6 +17,180 @@ async function applyAllMigrations(database: PGlite): Promise<void> {
   }
 }
 
+async function seedApprovedOutreachFixture(
+  database: PGlite,
+  approveMessages = true
+): Promise<void> {
+  await database.exec(`
+    INSERT INTO sources (id, type, name)
+    VALUES ('35000000-0000-4000-8000-000000000001', 'secure_fetch', 'Outreach fixture');
+
+    INSERT INTO source_documents (
+      id, source_id, url, canonical_url, content_hash, trust_level
+    ) VALUES (
+      '35100000-0000-4000-8000-000000000001',
+      '35000000-0000-4000-8000-000000000001',
+      'https://outreach-fixture.example.test.invalid',
+      'https://outreach-fixture.example.test.invalid',
+      '${"c".repeat(64)}',
+      'primary'
+    );
+
+    INSERT INTO organizations (
+      id, normalized_name, display_name, canonical_domain, country, stage
+    ) VALUES (
+      '15000000-0000-4000-8000-000000000001',
+      'outreach fixture',
+      'Outreach Fixture',
+      'outreach-fixture.example.test.invalid',
+      'Spain',
+      'prelaunch'
+    );
+
+    INSERT INTO leads (id, organization_id, status)
+    VALUES (
+      '25000000-0000-4000-8000-000000000001',
+      '15000000-0000-4000-8000-000000000001',
+      'approval_pending'
+    );
+
+    INSERT INTO evidence (
+      id, lead_id, source_document_id, fact_type, claim, quote_or_summary,
+      source_url, observed_at, confidence, created_by
+    ) VALUES (
+      '45000000-0000-4000-8000-000000000001',
+      '25000000-0000-4000-8000-000000000001',
+      '35100000-0000-4000-8000-000000000001',
+      'product',
+      'Official product fact',
+      'Official product fact',
+      'https://outreach-fixture.example.test.invalid',
+      now(),
+      1,
+      'test'
+    );
+
+    INSERT INTO contacts (
+      id, organization_id, source_document_id, evidence_id, channel_type,
+      value, normalized_value, direct_url, source_url, origin, provenance,
+      verification_status, confidence
+    ) VALUES (
+      '75000000-0000-4000-8000-000000000001',
+      '15000000-0000-4000-8000-000000000001',
+      '35100000-0000-4000-8000-000000000001',
+      '45000000-0000-4000-8000-000000000001',
+      'corporate_email',
+      'hello@outreach-fixture.example.test.invalid',
+      'hello@outreach-fixture.example.test.invalid',
+      'mailto:hello@outreach-fixture.example.test.invalid',
+      'https://outreach-fixture.example.test.invalid',
+      'published_public',
+      'Official contact page',
+      'published_verified',
+      1
+    );
+
+    INSERT INTO strategy_briefs (
+      id, lead_id, contact_id, language, diagnosis, opportunity, mateo_fit,
+      brief_json, evidence_ids_json, created_by
+    ) VALUES (
+      '85000000-0000-4000-8000-000000000001',
+      '25000000-0000-4000-8000-000000000001',
+      '75000000-0000-4000-8000-000000000001',
+      'en',
+      'Evidence-backed diagnosis',
+      'Specific opportunity',
+      'Integrated operator',
+      '{"contactId":"75000000-0000-4000-8000-000000000001","brandName":"Outreach Fixture","language":"en","evidenceIds":["45000000-0000-4000-8000-000000000001"]}',
+      '["45000000-0000-4000-8000-000000000001"]',
+      'test'
+    );
+
+    INSERT INTO message_drafts (
+      id, strategy_brief_id, lead_id, contact_id, sequence_step, subject, body,
+      personalization_tokens_json, evidence_map_json, word_count, language,
+      qa_json, qa_passed, created_by
+    ) VALUES
+    (
+      '95000000-0000-4000-8000-000000000001',
+      '85000000-0000-4000-8000-000000000001',
+      '25000000-0000-4000-8000-000000000001',
+      '75000000-0000-4000-8000-000000000001',
+      1,
+      'A specific opportunity',
+      'Official product fact. A useful thought from https://innovateats.com',
+      '["Outreach Fixture","specific opportunity"]',
+      '[{"textSpan":"Official product fact.","kind":"fact","evidenceIds":["45000000-0000-4000-8000-000000000001"]}]',
+      9,
+      'en',
+      '{"passed":true}',
+      true,
+      'test'
+    ),
+    (
+      '95000000-0000-4000-8000-000000000002',
+      '85000000-0000-4000-8000-000000000001',
+      '25000000-0000-4000-8000-000000000001',
+      '75000000-0000-4000-8000-000000000001',
+      2,
+      NULL,
+      'Official product fact. Following up from https://innovateats.com',
+      '["Outreach Fixture","specific opportunity"]',
+      '[{"textSpan":"Official product fact.","kind":"fact","evidenceIds":["45000000-0000-4000-8000-000000000001"]}]',
+      8,
+      'en',
+      '{"passed":true}',
+      true,
+      'test'
+    ),
+    (
+      '95000000-0000-4000-8000-000000000003',
+      '85000000-0000-4000-8000-000000000001',
+      '25000000-0000-4000-8000-000000000001',
+      '75000000-0000-4000-8000-000000000001',
+      3,
+      NULL,
+      'Official product fact. Closing the loop from https://innovateats.com',
+      '["Outreach Fixture","specific opportunity"]',
+      '[{"textSpan":"Official product fact.","kind":"fact","evidenceIds":["45000000-0000-4000-8000-000000000001"]}]',
+      9,
+      'en',
+      '{"passed":true}',
+      true,
+      'test'
+    );
+
+    INSERT INTO campaigns (
+      id, name, active, sequence_version, approval_mode
+    ) VALUES (
+      '96000000-0000-4000-8000-000000000001',
+      'Outreach fixture campaign',
+      true,
+      'three-touch-v1',
+      'approved_send'
+    );
+
+    INSERT INTO senders (
+      id, email, display_name, active, sandbox
+    ) VALUES (
+      '97000000-0000-4000-8000-000000000001',
+      'maateosanchezt@gmail.com',
+      'Mateo Sanchez / InnovatEats',
+      false,
+      true
+    );
+  `);
+  if (approveMessages) {
+    await database.exec(`
+      INSERT INTO message_approvals (message_draft_id, decision, actor_id)
+      VALUES
+        ('95000000-0000-4000-8000-000000000001', 'approved', 'maateosanchezt@gmail.com'),
+        ('95000000-0000-4000-8000-000000000002', 'approved', 'maateosanchezt@gmail.com'),
+        ('95000000-0000-4000-8000-000000000003', 'approved', 'maateosanchezt@gmail.com')
+    `);
+  }
+}
+
 describe("database migrations", () => {
   let database: PGlite;
 
@@ -55,7 +229,16 @@ describe("database migrations", () => {
           'lead_status_history',
           'strategy_briefs',
           'message_drafts',
-          'message_approvals'
+          'message_approvals',
+          'campaigns',
+          'senders',
+          'gmail_oauth_states',
+          'gmail_credentials',
+          'suppression_list',
+          'sequences',
+          'outbound_messages',
+          'send_attempts',
+          'outbox_events'
         )
       ORDER BY table_name
     `);
@@ -64,11 +247,14 @@ describe("database migrations", () => {
       "account",
       "agent_runs",
       "audit_log",
+      "campaigns",
       "contact_verifications",
       "contacts",
       "evidence",
       "feature_flags",
       "founders",
+      "gmail_credentials",
+      "gmail_oauth_states",
       "kill_switches",
       "lead_scores",
       "lead_status_history",
@@ -76,10 +262,16 @@ describe("database migrations", () => {
       "message_approvals",
       "message_drafts",
       "organizations",
+      "outbound_messages",
+      "outbox_events",
+      "send_attempts",
+      "senders",
+      "sequences",
       "session",
       "source_documents",
       "sources",
       "strategy_briefs",
+      "suppression_list",
       "user",
       "verification"
     ]);
@@ -764,5 +956,152 @@ describe("database migrations", () => {
       /immutable and append-only/
     );
     await expect(database.exec("DELETE FROM message_approvals")).rejects.toThrow(/append-only/);
+  });
+
+  it("enforces encrypted append-only Gmail grants", async () => {
+    await seedApprovedOutreachFixture(database);
+    await expect(
+      database.exec(`
+        INSERT INTO gmail_credentials (
+          sender_id, version, encrypted_refresh_token, scopes_json, granted_by
+        ) VALUES (
+          '97000000-0000-4000-8000-000000000001',
+          1,
+          'plaintext-token',
+          '["https://www.googleapis.com/auth/gmail.send"]',
+          'test'
+        )
+      `)
+    ).rejects.toThrow();
+
+    await database.exec(`
+      INSERT INTO gmail_credentials (
+        sender_id, version, encrypted_refresh_token, scopes_json, granted_by
+      ) VALUES (
+        '97000000-0000-4000-8000-000000000001',
+        1,
+        'v1.iv.tag.ciphertext',
+        '["openid","email","https://www.googleapis.com/auth/gmail.send"]',
+        'maateosanchezt@gmail.com'
+      )
+    `);
+    await expect(
+      database.exec("UPDATE gmail_credentials SET granted_by = 'tampered'")
+    ).rejects.toThrow(/append-only/);
+    await expect(database.exec("DELETE FROM gmail_credentials")).rejects.toThrow(/append-only/);
+  });
+
+  it("binds an outbound to the latest approval and permits only safe delivery transitions", async () => {
+    await seedApprovedOutreachFixture(database);
+    await database.exec(`
+      INSERT INTO sequences (
+        id, lead_id, contact_id, campaign_id, sender_id, workflow_id,
+        recipient_timezone, delivery_mode, created_by
+      ) VALUES (
+        '98000000-0000-4000-8000-000000000001',
+        '25000000-0000-4000-8000-000000000001',
+        '75000000-0000-4000-8000-000000000001',
+        '96000000-0000-4000-8000-000000000001',
+        '97000000-0000-4000-8000-000000000001',
+        'outreach-sequence:98000000-0000-4000-8000-000000000001',
+        'Europe/Madrid',
+        'dry_run',
+        'maateosanchezt@gmail.com'
+      );
+
+      INSERT INTO outbound_messages (
+        id, sequence_id, message_draft_id, sequence_step, internet_message_id,
+        idempotency_key, scheduled_at, decision_trace_json
+      ) VALUES (
+        '99000000-0000-4000-8000-000000000001',
+        '98000000-0000-4000-8000-000000000001',
+        '95000000-0000-4000-8000-000000000001',
+        1,
+        '<fixture-1@outreach.innovateats.com>',
+        '96000000-0000-4000-8000-000000000001:25000000-0000-4000-8000-000000000001:1:email',
+        now(),
+        '{"requiredWebsite":"https://innovateats.com"}'
+      );
+    `);
+
+    await expect(
+      database.exec(`
+        UPDATE outbound_messages
+        SET delivery_status = 'sent'
+        WHERE id = '99000000-0000-4000-8000-000000000001'
+      `)
+    ).rejects.toThrow(/transition is invalid/);
+
+    await database.exec(`
+      UPDATE outbound_messages
+      SET delivery_status = 'sending', claimed_at = now(), attempt_count = 1
+      WHERE id = '99000000-0000-4000-8000-000000000001';
+      UPDATE outbound_messages
+      SET delivery_status = 'dry_run'
+      WHERE id = '99000000-0000-4000-8000-000000000001';
+    `);
+    await expect(database.exec("DELETE FROM outbound_messages")).rejects.toThrow(
+      /cannot be deleted physically/
+    );
+    await expect(
+      database.exec(`
+        INSERT INTO outbound_messages (
+          sequence_id, message_draft_id, sequence_step, internet_message_id,
+          idempotency_key, scheduled_at, decision_trace_json
+        ) VALUES (
+          '98000000-0000-4000-8000-000000000001',
+          '95000000-0000-4000-8000-000000000002',
+          2,
+          '<fixture-2@outreach.innovateats.com>',
+          'wrong-key',
+          now(),
+          '{}'
+        )
+      `)
+    ).rejects.toThrow(/association or idempotency is invalid/);
+  });
+
+  it("blocks scheduling after a contact enters the immutable suppression list", async () => {
+    await seedApprovedOutreachFixture(database, false);
+    await database.exec(`
+      INSERT INTO suppression_list (
+        normalized_contact, contact_hash, channel, reason, source, created_by
+      ) VALUES (
+        'hello@outreach-fixture.example.test.invalid',
+        '${"d".repeat(64)}',
+        'email',
+        'unsubscribe',
+        'fixture',
+        'test'
+      )
+    `);
+    await expect(
+      database.exec(`
+        INSERT INTO message_approvals (message_draft_id, decision, actor_id)
+        VALUES (
+          '95000000-0000-4000-8000-000000000001',
+          'approved',
+          'maateosanchezt@gmail.com'
+        )
+      `)
+    ).rejects.toThrow(/suppressed contact/);
+    await expect(
+      database.exec(`
+        INSERT INTO sequences (
+          lead_id, contact_id, campaign_id, sender_id, workflow_id,
+          recipient_timezone, delivery_mode, created_by
+        ) VALUES (
+          '25000000-0000-4000-8000-000000000001',
+          '75000000-0000-4000-8000-000000000001',
+          '96000000-0000-4000-8000-000000000001',
+          '97000000-0000-4000-8000-000000000001',
+          'outreach-sequence:suppressed-fixture',
+          'Europe/Madrid',
+          'dry_run',
+          'maateosanchezt@gmail.com'
+        )
+      `)
+    ).rejects.toThrow(/suppressed contact/);
+    await expect(database.exec("DELETE FROM suppression_list")).rejects.toThrow(/append-only/);
   });
 });

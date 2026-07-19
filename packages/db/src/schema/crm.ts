@@ -25,7 +25,10 @@ import type {
   MessageBrief,
   MessageDraftContent,
   MessageLanguage,
-  MessageQaReview
+  MessageQaReview,
+  GmailDeliveryMode,
+  OutboundDeliveryStatus,
+  OutreachSequenceStatus
 } from "@innovateats/shared";
 
 import { regions } from "./foundations.js";
@@ -418,5 +421,209 @@ export const messageApprovals = pgTable(
   (table) => [
     uniqueIndex("message_approval_one_decision_per_version").on(table.messageDraftId),
     index("message_approvals_created_index").on(table.createdAt)
+  ]
+);
+
+export const campaigns = pgTable(
+  "campaigns",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    active: boolean("active").default(false).notNull(),
+    sequenceVersion: text("sequence_version").notNull(),
+    dailyCap: integer("daily_cap").default(10).notNull(),
+    dailyDomainCap: integer("daily_domain_cap").default(1).notNull(),
+    approvalMode: text("approval_mode")
+      .$type<"draft_only" | "approved_send" | "autonomous_send">()
+      .default("approved_send")
+      .notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (table) => [uniqueIndex("campaign_name_unique").on(table.name)]
+);
+
+export const senders = pgTable(
+  "senders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    email: text("email").notNull(),
+    displayName: text("display_name").notNull(),
+    active: boolean("active").default(false).notNull(),
+    sandbox: boolean("sandbox").default(true).notNull(),
+    dailyCap: integer("daily_cap").default(10).notNull(),
+    timezone: text("timezone").default("Europe/Madrid").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (table) => [uniqueIndex("sender_email_unique").on(table.email)]
+);
+
+export const gmailOauthStates = pgTable("gmail_oauth_states", {
+  stateHash: text("state_hash").primaryKey(),
+  senderEmail: text("sender_email").notNull(),
+  returnPath: text("return_path").notNull(),
+  actorId: text("actor_id").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: createdAt()
+});
+
+export const gmailCredentials = pgTable(
+  "gmail_credentials",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => senders.id, { onDelete: "restrict" }),
+    version: integer("version").notNull(),
+    encryptedRefreshToken: text("encrypted_refresh_token").notNull(),
+    scopes: jsonb("scopes_json").$type<readonly string[]>().notNull(),
+    grantedBy: text("granted_by").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("gmail_credential_sender_version_unique").on(table.senderId, table.version),
+    index("gmail_credentials_sender_created_index").on(table.senderId, table.createdAt)
+  ]
+);
+
+export const suppressionList = pgTable(
+  "suppression_list",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    normalizedContact: text("normalized_contact").notNull(),
+    contactHash: text("contact_hash").notNull(),
+    channel: text("channel").default("email").notNull(),
+    reason: text("reason").notNull(),
+    source: text("source").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("suppression_contact_channel_unique").on(table.normalizedContact, table.channel),
+    index("suppression_contact_hash_index").on(table.contactHash)
+  ]
+);
+
+export const sequences = pgTable(
+  "sequences",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "restrict" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "restrict" }),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "restrict" }),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => senders.id, { onDelete: "restrict" }),
+    workflowId: text("workflow_id").notNull(),
+    status: text("status").$type<OutreachSequenceStatus>().default("pending_workflow").notNull(),
+    currentStep: integer("current_step").default(0).notNull(),
+    recipientTimezone: text("recipient_timezone").notNull(),
+    deliveryMode: text("delivery_mode").$type<GmailDeliveryMode>().notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    stoppedAt: timestamp("stopped_at", { withTimezone: true }),
+    stopReason: text("stop_reason"),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (table) => [
+    uniqueIndex("sequence_workflow_unique").on(table.workflowId),
+    index("sequences_status_index").on(table.status, table.updatedAt)
+  ]
+);
+
+export const outboundMessages = pgTable(
+  "outbound_messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sequenceId: uuid("sequence_id")
+      .notNull()
+      .references(() => sequences.id, { onDelete: "restrict" }),
+    messageDraftId: uuid("message_draft_id")
+      .notNull()
+      .references(() => messageDrafts.id, { onDelete: "restrict" }),
+    sequenceStep: integer("sequence_step").notNull(),
+    providerMessageId: text("provider_message_id"),
+    threadId: text("thread_id"),
+    internetMessageId: text("internet_message_id").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    deliveryStatus: text("delivery_status")
+      .$type<OutboundDeliveryStatus>()
+      .default("scheduled")
+      .notNull(),
+    error: text("error"),
+    attemptCount: integer("attempt_count").default(0).notNull(),
+    decisionTrace: jsonb("decision_trace_json").$type<Record<string, unknown>>().notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (table) => [
+    uniqueIndex("outbound_idempotency_unique").on(table.idempotencyKey),
+    uniqueIndex("outbound_sequence_step_unique").on(table.sequenceId, table.sequenceStep),
+    index("outbound_schedule_index").on(table.deliveryStatus, table.scheduledAt),
+    index("outbound_thread_index").on(table.threadId)
+  ]
+);
+
+export const sendAttempts = pgTable(
+  "send_attempts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    outboundMessageId: uuid("outbound_message_id")
+      .notNull()
+      .references(() => outboundMessages.id, { onDelete: "restrict" }),
+    idempotencyKey: text("idempotency_key").notNull(),
+    attemptNumber: integer("attempt_number").notNull(),
+    mode: text("mode").$type<GmailDeliveryMode>().notNull(),
+    outcome: text("outcome")
+      .$type<"claimed" | "dry_run" | "sent" | "blocked" | "delivery_unknown">()
+      .notNull(),
+    providerMessageId: text("provider_message_id"),
+    threadId: text("thread_id"),
+    errorCode: text("error_code"),
+    errorDetail: text("error_detail"),
+    decisionTrace: jsonb("decision_trace_json").$type<Record<string, unknown>>().notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("send_attempt_number_unique").on(table.outboundMessageId, table.attemptNumber),
+    index("send_attempts_outbound_index").on(table.outboundMessageId, table.createdAt)
+  ]
+);
+
+export const outboxEvents = pgTable(
+  "outbox_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    eventType: text("event_type").$type<"sequence.start">().notNull(),
+    aggregateType: text("aggregate_type").notNull(),
+    aggregateId: uuid("aggregate_id").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    payload: jsonb("payload_json").$type<Record<string, unknown>>().notNull(),
+    status: text("status")
+      .$type<"pending" | "processing" | "processed" | "failed">()
+      .default("pending")
+      .notNull(),
+    attemptCount: integer("attempt_count").default(0).notNull(),
+    availableAt: timestamp("available_at", { withTimezone: true }).defaultNow().notNull(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (table) => [
+    uniqueIndex("outbox_idempotency_unique").on(table.idempotencyKey),
+    index("outbox_pending_index").on(table.status, table.availableAt)
   ]
 );

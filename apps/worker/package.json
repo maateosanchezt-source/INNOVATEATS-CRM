@@ -16,8 +16,12 @@
   },
   "dependencies": {
     "@innovateats/config": "workspace:*",
+    "@innovateats/db": "workspace:*",
+    "@innovateats/integrations": "workspace:*",
     "@innovateats/observability": "workspace:*",
+    "@innovateats/shared": "workspace:*",
     "@innovateats/workflows": "workspace:*",
+    "@temporalio/client": "1.20.3",
     "@temporalio/worker": "1.20.3"
   },
   "devDependencies": {
