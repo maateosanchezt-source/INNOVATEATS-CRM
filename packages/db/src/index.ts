@@ -1,6 +1,18 @@
 export { createDatabaseClient, type AppDatabase, type DatabaseClient } from "./client.js";
 export { applyMigrations, readMigrationFiles, type MigrationFile } from "./migrations.js";
 export {
+  EvidenceNotFoundError,
+  InvalidLeadTransitionError,
+  LeadNotFoundError,
+  PostgresCrmRepository,
+  type EvidenceRecord,
+  type LeadDetail,
+  type LeadHistoryRecord,
+  type LeadListFilters,
+  type LeadListItem,
+  type ManualIngestResult
+} from "./repositories/crm.js";
+export {
   PostgresSafetyControlRepository,
   type AuditActor
 } from "./repositories/safety-controls.js";

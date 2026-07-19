@@ -2,7 +2,7 @@
 
 Internal, single-tenant operating system for evidence-based CPG research, compliant outreach, and high-quality sales handoff.
 
-## Phase 0 status
+## Current status: Phase 1
 
 Foundations establish:
 
@@ -16,7 +16,15 @@ Foundations establish:
 - a global dry-run contract;
 - an invariant that every outreach email contains `https://innovateats.com`.
 
-No real email can be sent by Phase 0.
+Phase 1 adds a usable, agent-free CRM core:
+
+- manual public-URL ingest with canonical-domain deduplication;
+- lead inbox, filters, lead detail, and guarded pipeline transitions;
+- versioned evidence create/read/revise/remove flows;
+- immutable evidence content and append-only mutation audit;
+- three clearly labelled synthetic leads for acceptance testing.
+
+No real email can be sent by Phase 1. Manual ingest stores the URL and provenance but does not fetch it.
 
 ## Prerequisites
 
@@ -38,6 +46,7 @@ pnpm dev
 Open:
 
 - Web control plane: <http://localhost:3000>
+- Lead inbox: <http://localhost:3000/leads>
 - Worker health: <http://localhost:3001/health>
 - Temporal UI: <http://localhost:8080>
 - Mailpit: <http://localhost:8025>
@@ -66,3 +75,4 @@ pnpm db:migrate:check
 ```
 
 Docker smoke verification is documented in `docs/testing/phase-0-verification.md`.
+CRM verification is documented in `docs/testing/phase-1-verification.md`.

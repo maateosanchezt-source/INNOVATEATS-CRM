@@ -7,6 +7,8 @@
 5. Run migrations and seed.
 6. Start web and worker with `pnpm dev`.
 
+The seed is idempotent and creates three synthetic sample leads. They are labelled as samples and must never be represented as real companies or evidence.
+
 Google redirect URI:
 
 `http://localhost:3000/api/auth/callback/google`

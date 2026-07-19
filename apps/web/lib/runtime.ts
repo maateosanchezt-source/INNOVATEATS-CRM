@@ -6,6 +6,7 @@ import {
 } from "@innovateats/config";
 import {
   createDatabaseClient,
+  PostgresCrmRepository,
   PostgresSafetyControlRepository,
   type DatabaseClient
 } from "@innovateats/db";
@@ -71,4 +72,8 @@ export function internalAuth(): ReturnType<typeof createInternalAuth> {
 
 export function safetyControlService(): SafetyControlService {
   return new SafetyControlService(new PostgresSafetyControlRepository(databaseClient().db));
+}
+
+export function crmRepository(): PostgresCrmRepository {
+  return new PostgresCrmRepository(databaseClient().db);
 }

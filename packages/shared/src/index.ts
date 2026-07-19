@@ -6,6 +6,25 @@ export {
   type OperationMode
 } from "./constants.js";
 export {
+  allowedTransitionsFrom,
+  canTransitionLead,
+  evidenceInputSchema,
+  leadStages,
+  leadStageSchema,
+  leadStatuses,
+  leadStatusSchema,
+  leadUpdateSchema,
+  manualLeadIngestSchema,
+  normalizePublicUrl,
+  terminalLeadStatuses,
+  type EvidenceInput,
+  type LeadStage,
+  type LeadStatus,
+  type LeadUpdateInput,
+  type ManualLeadIngestInput,
+  type NormalizedPublicUrl
+} from "./crm.js";
+export {
   defaultFeatureFlags,
   featureFlagKeys,
   featureFlagKeySchema,
