@@ -1,0 +1,26 @@
+{
+  "name": "@innovateats/agents",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root . --config ../../vitest.config.ts --passWithNoTests",
+    "test:unit": "vitest run tests/unit --root . --config ../../vitest.config.ts --passWithNoTests",
+    "test:integration": "vitest run tests/integration --root . --config ../../vitest.config.ts --passWithNoTests"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

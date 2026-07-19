@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+  - packages/*
+
+linkWorkspacePackages: false
+saveWorkspaceProtocol: rolling
+sharedWorkspaceLockfile: true
+disallowWorkspaceCycles: true
+allowBuilds:
+  "@swc/core": true
+  esbuild: true
+  protobufjs: true
+  sharp: true
