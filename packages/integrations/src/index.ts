@@ -27,16 +27,26 @@ export {
   decryptGmailRefreshToken,
   encryptGmailRefreshToken,
   gmailIdentityScopes,
+  gmailInboundIdentityScopes,
+  gmailReadonlyScope,
   gmailSendScope,
+  GmailHistoryExpiredError,
+  GmailMessageIgnoredError,
+  GoogleGmailInboundGateway,
   GoogleGmailGateway,
   GoogleGmailOAuth,
   outboundInternetMessageId,
   renderOutboundBody,
   type GmailGateway,
+  type GmailApiMessage,
+  type GmailHistoryResult,
+  type GmailInboundGateway,
+  type GmailMessageReference,
   type GmailOAuthConfiguration,
   type GmailOAuthGrant,
   type GmailSendInput,
-  type GmailSendResult
+  type GmailSendResult,
+  parseGmailInboundMessage
 } from "./gmail.js";
 export {
   DisabledSearchProvider,

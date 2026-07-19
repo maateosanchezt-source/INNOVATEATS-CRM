@@ -16,7 +16,7 @@ describe("CRM lifecycle", () => {
     expect(canTransitionLead("no_contact", "researched")).toBe(true);
     expect(canTransitionLead("discovered", "scheduled")).toBe(false);
     expect(canTransitionLead("suppressed", "scheduled")).toBe(false);
-    expect(allowedTransitionsFrom("mateo_owned")).toEqual([]);
+    expect(allowedTransitionsFrom("mateo_owned")).toEqual(["suppressed"]);
   });
 
   it("treats a repeated status as an idempotent transition", () => {

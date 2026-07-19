@@ -2,7 +2,7 @@
 
 Internal, single-tenant operating system for evidence-based CPG research, compliant outreach, and high-quality sales handoff.
 
-## Current status: Phase 5
+## Current status: Phase 6
 
 Foundations establish:
 
@@ -64,9 +64,21 @@ Phase 5 adds durable, reputation-safe email sequencing:
 - dry-run, Mateo-only sandbox and separately approved production modes;
 - authenticated scheduling, pause, resume, cancel, Gmail connection and delivery ledger controls.
 
+Phase 6 adds privacy-bounded reply handling and human handoff:
+
+- 30-second Gmail history polling behind a separate, explicitly approved restricted scope;
+- full-message reads only for Gmail thread IDs already created by a sent CRM sequence;
+- deterministic English/Spanish reply classification with prompt-injection-resistant inert input;
+- atomic sequence stop, timer cancellation outbox signal, bounce state, and immutable suppression;
+- priority inbox, internal notifications, dated OOO/later rechecks, and lead-record handoff links;
+- complete qualification packet with eight call questions, risks, evidence, Audit angle, and a
+  suggested reply;
+- Mateo-only ownership and copy controls, with no automatic reply or send action.
+
 Research, contact enrichment, message generation, and external email remain disabled by default.
-Dry-run scheduling can exercise the complete durable path without contacting Gmail. Production
-delivery is not approved.
+Inbound Gmail reading also remains disabled until the restricted scope is explicitly approved.
+Dry-run scheduling can exercise the complete durable outbound path without contacting Gmail.
+Production delivery is not approved.
 
 ## Prerequisites
 
@@ -89,6 +101,7 @@ Open:
 
 - Web control plane: <http://localhost:3000>
 - Lead inbox: <http://localhost:3000/leads>
+- Reply inbox: <http://localhost:3000/replies>
 - Worker health: <http://localhost:3001/health>
 - Temporal UI: <http://localhost:8080>
 - Mailpit: <http://localhost:8025>
@@ -122,3 +135,4 @@ Research-engine verification is documented in `docs/testing/phase-2-verification
 Contact-engine verification is documented in `docs/testing/phase-3-verification.md`.
 Message and approval verification is documented in `docs/testing/phase-4-verification.md`.
 Gmail and durable-sequence verification is documented in `docs/testing/phase-5-verification.md`.
+Reply and handoff verification is documented in `docs/testing/phase-6-verification.md`.

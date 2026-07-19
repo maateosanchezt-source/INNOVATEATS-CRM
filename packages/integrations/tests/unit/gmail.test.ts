@@ -6,7 +6,9 @@ import {
   buildRawGmailMessage,
   decryptGmailRefreshToken,
   encryptGmailRefreshToken,
+  GmailMessageIgnoredError,
   outboundInternetMessageId,
+  parseGmailInboundMessage,
   renderOutboundBody
 } from "../../src/gmail.js";
 
@@ -68,5 +70,66 @@ describe("Gmail integration", () => {
         references: []
       })
     ).toThrow(/forbidden line break/u);
+  });
+
+  it("parses only the plain-text body and expected mailbox recipient", () => {
+    const parsed = parseGmailInboundMessage(
+      {
+        id: "gmail-reply-1",
+        threadId: "gmail-thread-1",
+        internalDate: String(Date.parse("2026-07-19T10:00:00.000Z")),
+        payload: {
+          mimeType: "multipart/alternative",
+          headers: [
+            { name: "From", value: "Founder <founder@example.com>" },
+            { name: "To", value: "Mateo <maateosanchezt@gmail.com>" },
+            { name: "Subject", value: "Re: A useful thought" }
+          ],
+          parts: [
+            {
+              mimeType: "text/plain",
+              body: { data: Buffer.from("Yes, let's talk.", "utf8").toString("base64url") }
+            },
+            {
+              mimeType: "text/html",
+              body: {
+                data: Buffer.from("<script>hostile()</script><p>Wrong body</p>", "utf8").toString(
+                  "base64url"
+                )
+              }
+            }
+          ]
+        }
+      },
+      "maateosanchezt@gmail.com"
+    );
+
+    expect(parsed).toMatchObject({
+      providerMessageId: "gmail-reply-1",
+      threadId: "gmail-thread-1",
+      fromAddress: "founder@example.com",
+      toAddress: "maateosanchezt@gmail.com",
+      bodyText: "Yes, let's talk."
+    });
+  });
+
+  it("ignores an outgoing or unrelated message instead of treating it as a reply", () => {
+    expect(() =>
+      parseGmailInboundMessage(
+        {
+          id: "gmail-outgoing-1",
+          threadId: "gmail-thread-1",
+          internalDate: String(Date.parse("2026-07-19T10:00:00.000Z")),
+          payload: {
+            headers: [
+              { name: "From", value: "Mateo <maateosanchezt@gmail.com>" },
+              { name: "To", value: "Founder <founder@example.com>" }
+            ],
+            body: { data: Buffer.from("Outbound", "utf8").toString("base64url") }
+          }
+        },
+        "maateosanchezt@gmail.com"
+      )
+    ).toThrow(GmailMessageIgnoredError);
   });
 });

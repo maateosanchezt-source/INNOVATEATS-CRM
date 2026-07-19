@@ -16,6 +16,7 @@ describe("server environment", () => {
       dryRun: true,
       emailSendEnabled: false,
       gmailDeliveryMode: "dry_run",
+      inboundProcessingEnabled: false,
       requiredWebsite: "https://innovateats.com"
     });
     expect(environment.EMAIL_VERIFIER_PROVIDER).toBe("disabled");
@@ -101,6 +102,14 @@ describe("server environment", () => {
         BETTER_AUTH_SECRET: "too-short"
       })
     ).toThrow(/BETTER_AUTH_SECRET/);
+  });
+
+  it("requires explicit restricted-scope approval before inbound processing", () => {
+    expect(() =>
+      parseServerEnvironment({
+        INBOUND_PROCESSING_ENABLED: "true"
+      })
+    ).toThrow(/restricted gmail\.readonly scope/u);
   });
 
   it("does not allow the mandatory website to drift", () => {

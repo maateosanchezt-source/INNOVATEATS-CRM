@@ -84,6 +84,8 @@ services:
       GMAIL_DELIVERY_MODE: dry_run
       EMAIL_SEND_ENABLED: "false"
       AUTONOMOUS_SEND_ENABLED: "false"
+      GMAIL_INBOUND_OAUTH_APPROVED: "false"
+      INBOUND_PROCESSING_ENABLED: "false"
     ports:
       - "3000:3000"
 
@@ -107,6 +109,8 @@ services:
       GMAIL_DELIVERY_MODE: dry_run
       EMAIL_SEND_ENABLED: "false"
       AUTONOMOUS_SEND_ENABLED: "false"
+      GMAIL_INBOUND_OAUTH_APPROVED: "false"
+      INBOUND_PROCESSING_ENABLED: "false"
       WORKER_HEALTH_PORT: 3001
     ports:
       - "3001:3001"

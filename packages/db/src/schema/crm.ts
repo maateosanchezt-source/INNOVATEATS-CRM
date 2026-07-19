@@ -1,6 +1,7 @@
 import {
   bigserial,
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -26,7 +27,10 @@ import type {
   MessageDraftContent,
   MessageLanguage,
   MessageQaReview,
+  HandoffPacket,
   GmailDeliveryMode,
+  ReplyClassificationName,
+  ReplyRequestedAction,
   OutboundDeliveryStatus,
   OutreachSequenceStatus
 } from "@innovateats/shared";
@@ -562,6 +566,7 @@ export const outboundMessages = pgTable(
       .$type<OutboundDeliveryStatus>()
       .default("scheduled")
       .notNull(),
+    bounceType: text("bounce_type").$type<"hard" | "soft" | "unknown">(),
     error: text("error"),
     attemptCount: integer("attempt_count").default(0).notNull(),
     decisionTrace: jsonb("decision_trace_json").$type<Record<string, unknown>>().notNull(),
@@ -606,7 +611,7 @@ export const outboxEvents = pgTable(
   "outbox_events",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    eventType: text("event_type").$type<"sequence.start">().notNull(),
+    eventType: text("event_type").$type<"sequence.start" | "sequence.stop">().notNull(),
     aggregateType: text("aggregate_type").notNull(),
     aggregateId: uuid("aggregate_id").notNull(),
     idempotencyKey: text("idempotency_key").notNull(),
@@ -625,5 +630,146 @@ export const outboxEvents = pgTable(
   (table) => [
     uniqueIndex("outbox_idempotency_unique").on(table.idempotencyKey),
     index("outbox_pending_index").on(table.status, table.availableAt)
+  ]
+);
+
+export const gmailSyncCursors = pgTable("gmail_sync_cursors", {
+  senderId: uuid("sender_id")
+    .primaryKey()
+    .references(() => senders.id, { onDelete: "restrict" }),
+  historyId: text("history_id").notNull(),
+  initializedAt: timestamp("initialized_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: updatedAt()
+});
+
+export const inboundMessages = pgTable(
+  "inbound_messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    providerMessageId: text("provider_message_id").notNull(),
+    threadId: text("thread_id").notNull(),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => senders.id, { onDelete: "restrict" }),
+    sequenceId: uuid("sequence_id")
+      .notNull()
+      .references(() => sequences.id, { onDelete: "restrict" }),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "restrict" }),
+    associationType: text("association_type")
+      .$type<"contact_reply" | "provider_bounce">()
+      .notNull(),
+    fromAddress: text("from_address").notNull(),
+    toAddress: text("to_address").notNull(),
+    subject: text("subject").notNull(),
+    bodyText: text("body_text").notNull(),
+    bodyHash: text("body_hash").notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
+    providerHeaders: jsonb("provider_headers_json").$type<Record<string, string>>().notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("inbound_provider_message_unique").on(table.providerMessageId),
+    index("inbound_received_index").on(table.receivedAt),
+    index("inbound_sequence_index").on(table.sequenceId, table.receivedAt)
+  ]
+);
+
+export const replyClassificationsTable = pgTable(
+  "reply_classifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    inboundMessageId: uuid("inbound_message_id")
+      .notNull()
+      .references(() => inboundMessages.id, { onDelete: "restrict" }),
+    version: integer("version").notNull(),
+    classifierVersion: text("classifier_version").notNull(),
+    classification: text("classification").$type<ReplyClassificationName>().notNull(),
+    confidence: real("confidence").notNull(),
+    sentiment: text("sentiment")
+      .$type<"positive" | "neutral" | "negative" | "automated">()
+      .notNull(),
+    requestedAction: text("requested_action").$type<ReplyRequestedAction>().notNull(),
+    suppressionRequired: boolean("suppression_required").notNull(),
+    followUpDate: date("follow_up_date"),
+    evidenceSnippets: jsonb("evidence_snippets_json").$type<readonly string[]>().notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("reply_classification_version_unique").on(table.inboundMessageId, table.version),
+    index("reply_classification_inbound_index").on(table.inboundMessageId, table.createdAt)
+  ]
+);
+
+export const handoffs = pgTable(
+  "handoffs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "restrict" }),
+    replyId: uuid("reply_id")
+      .notNull()
+      .references(() => inboundMessages.id, { onDelete: "restrict" }),
+    version: integer("version").default(1).notNull(),
+    packet: jsonb("packet_json").$type<HandoffPacket>().notNull(),
+    status: text("status").$type<"ready" | "owned">().default("ready").notNull(),
+    createdBy: text("created_by").notNull(),
+    ownedBy: text("owned_by"),
+    ownedAt: timestamp("owned_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (table) => [
+    uniqueIndex("handoff_reply_version_unique").on(table.replyId, table.version),
+    index("handoffs_status_created_index").on(table.status, table.createdAt)
+  ]
+);
+
+export const internalNotifications = pgTable(
+  "internal_notifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    type: text("type").$type<"reply_needs_mateo">().notNull(),
+    handoffId: uuid("handoff_id")
+      .notNull()
+      .references(() => handoffs.id, { onDelete: "restrict" }),
+    recipient: text("recipient").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("notification_handoff_unique").on(table.handoffId),
+    index("internal_notifications_unread_index").on(table.recipient, table.readAt, table.createdAt)
+  ]
+);
+
+export const recheckTasks = pgTable(
+  "recheck_tasks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "restrict" }),
+    inboundMessageId: uuid("inbound_message_id")
+      .notNull()
+      .references(() => inboundMessages.id, { onDelete: "restrict" }),
+    reason: text("reason").notNull(),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+    status: text("status")
+      .$type<"pending" | "completed" | "cancelled">()
+      .default("pending")
+      .notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (table) => [
+    uniqueIndex("recheck_inbound_unique").on(table.inboundMessageId),
+    index("recheck_tasks_pending_index").on(table.status, table.scheduledAt)
   ]
 );

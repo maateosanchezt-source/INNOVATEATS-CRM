@@ -94,8 +94,10 @@ export interface SequenceWorkspace {
 
 export interface OutboxEventRecord {
   readonly id: string;
+  readonly eventType: "sequence.start" | "sequence.stop";
   readonly sequenceId: string;
   readonly workflowId: string;
+  readonly reason: SequenceStopReason | null;
 }
 
 export interface RuntimeSendGate {
@@ -410,9 +412,26 @@ export class PostgresOutreachRepository {
       if (event === undefined) {
         return null;
       }
-      const payload = event.payload as { sequenceId?: unknown; workflowId?: unknown };
+      if (event.eventType !== "sequence.start" && event.eventType !== "sequence.stop") {
+        throw new OutreachStateError("Outbox sequence event type is unsupported.");
+      }
+      const payload = event.payload as {
+        sequenceId?: unknown;
+        workflowId?: unknown;
+        reason?: unknown;
+      };
       if (typeof payload.sequenceId !== "string" || typeof payload.workflowId !== "string") {
         throw new OutreachStateError("Outbox sequence payload is malformed.");
+      }
+      const reason =
+        event.eventType === "sequence.stop"
+          ? (payload.reason as SequenceStopReason | undefined)
+          : undefined;
+      if (
+        event.eventType === "sequence.stop" &&
+        !["human_reply", "unsubscribe", "bounce"].includes(reason ?? "")
+      ) {
+        throw new OutreachStateError("Outbox sequence stop payload is malformed.");
       }
       await transaction
         .update(outboxEvents)
@@ -423,7 +442,13 @@ export class PostgresOutreachRepository {
           updatedAt: now
         })
         .where(eq(outboxEvents.id, event.id));
-      return { id: event.id, sequenceId: payload.sequenceId, workflowId: payload.workflowId };
+      return {
+        id: event.id,
+        eventType: event.eventType,
+        sequenceId: payload.sequenceId,
+        workflowId: payload.workflowId,
+        reason: reason ?? null
+      };
     });
   }
 
@@ -524,6 +549,15 @@ export class PostgresOutreachRepository {
     now = new Date()
   ): Promise<ClaimOutboundResult> {
     return this.database.transaction(async (transaction) => {
+      const [sequenceLock] = await transaction
+        .select({ id: sequences.id })
+        .from(sequences)
+        .where(eq(sequences.id, sequenceId))
+        .limit(1)
+        .for("update");
+      if (sequenceLock === undefined) {
+        throw new OutreachStateError("Outreach sequence was not found.");
+      }
       const [row] = await transaction
         .select({
           sequence: sequences,
@@ -803,6 +837,20 @@ export class PostgresOutreachRepository {
     now = new Date()
   ): Promise<void> {
     await this.database.transaction(async (transaction) => {
+      const [candidate] = await transaction
+        .select({ sequenceId: outboundMessages.sequenceId })
+        .from(outboundMessages)
+        .where(eq(outboundMessages.id, outboundMessageId))
+        .limit(1);
+      if (candidate === undefined) {
+        throw new OutreachStateError("Only a claimed outbound can be completed.");
+      }
+      await transaction
+        .select({ id: sequences.id })
+        .from(sequences)
+        .where(eq(sequences.id, candidate.sequenceId))
+        .limit(1)
+        .for("update");
       const [row] = await transaction
         .select({
           outbound: outboundMessages,
@@ -849,7 +897,11 @@ export class PostgresOutreachRepository {
             updatedAt: now
           })
           .where(eq(sequences.id, row.sequence.id));
-      } else if (outcome === "sent" && row.sequence.deliveryMode === "production") {
+      } else if (
+        outcome === "sent" &&
+        row.sequence.deliveryMode === "production" &&
+        !["stopped", "start_failed", "completed"].includes(row.sequence.status)
+      ) {
         const [lead] = await transaction
           .select({ status: leads.status })
           .from(leads)
@@ -953,12 +1005,19 @@ export class PostgresOutreachRepository {
   public async completeSequence(sequenceId: string, now = new Date()): Promise<void> {
     await this.database.transaction(async (transaction) => {
       const [row] = await transaction
-        .select({ leadId: sequences.leadId, deliveryMode: sequences.deliveryMode })
+        .select({
+          leadId: sequences.leadId,
+          deliveryMode: sequences.deliveryMode,
+          status: sequences.status
+        })
         .from(sequences)
         .where(eq(sequences.id, sequenceId))
         .limit(1)
         .for("update");
       if (row === undefined) {
+        return;
+      }
+      if (row.status === "stopped" || row.status === "start_failed") {
         return;
       }
       await transaction

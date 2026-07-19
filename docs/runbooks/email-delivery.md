@@ -37,6 +37,11 @@ the claim transaction.
 Only `openid`, `email`, and `https://www.googleapis.com/auth/gmail.send` are requested. The callback
 rejects any verified identity other than the configured Mateo sender.
 
+Inbound reading is separate. Do not set `GMAIL_INBOUND_OAUTH_APPROVED=true` or reconnect with
+`gmail.readonly` until the Phase 8 review explicitly accepts Google's restricted-scope obligations.
+Do not set `INBOUND_PROCESSING_ENABLED=true` until the new grant exists and the matching database
+flag is intentionally enabled.
+
 ## Incident response
 
 - Activate the global kill switch first. The next claim fails closed.
@@ -48,3 +53,5 @@ rejects any verified identity other than the configured Mateo sender.
 - Rotate the Gmail OAuth grant by reconnecting. Each grant creates a new encrypted version.
 - Rotate `GMAIL_TOKEN_ENCRYPTION_KEY` only with a planned credential re-encryption procedure; old
   grants cannot be decrypted with a new key.
+- If reply polling fails, leave the cursor unchanged, inspect provider/configuration health, and
+  restart. Duplicate reply IDs are idempotent; never skip the cursor manually.

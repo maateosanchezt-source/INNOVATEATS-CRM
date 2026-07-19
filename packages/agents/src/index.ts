@@ -23,3 +23,5 @@ export {
 } from "./message-strategy.js";
 export { OpenAiResearchAgents } from "./openai-research-agents.js";
 export { OpenAiWebSearchProvider } from "./openai-search-provider.js";
+export { buildHandoffPacket, type HandoffContext } from "./handoff.js";
+export { classifyReply, extractFollowUpDate, extractVisibleReply } from "./reply-classifier.js";

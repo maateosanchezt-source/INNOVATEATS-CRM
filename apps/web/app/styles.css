@@ -1371,6 +1371,101 @@ textarea:focus {
   background: white;
 }
 
+.replyList {
+  display: grid;
+  gap: 16px;
+  margin: 28px 0 48px;
+}
+
+.replyCard {
+  border: 1px solid var(--line);
+  border-left: 5px solid #8ba18d;
+  border-radius: 16px;
+  padding: 20px;
+  background: var(--paper);
+}
+
+.replyCard.priority-1,
+.replyCard.priority-2,
+.replyCard.priority-3 {
+  border-left-color: var(--green);
+}
+
+.replyCardHeading,
+.replyCardFooter,
+.replyActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.replyCardHeading h2,
+.replyCard h3 {
+  margin: 4px 0;
+}
+
+.replyCardHeading p,
+.replyCardFooter,
+.replyPreview {
+  color: var(--muted);
+}
+
+.replyPreview,
+.replyBody,
+.suggestedReply pre {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.replyCardFooter {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.handoffGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 20px;
+}
+
+.replyBody {
+  max-height: 420px;
+  overflow: auto;
+  font: inherit;
+}
+
+.handoffPacket {
+  display: grid;
+  gap: 16px;
+  margin: 24px 0 48px;
+}
+
+.handoffPacket > article {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  background: var(--paper);
+}
+
+.suggestedReply pre {
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--paper-strong);
+  font: inherit;
+}
+
+.replyActions {
+  justify-content: flex-start;
+  margin-top: 16px;
+}
+
+.replyActions span {
+  color: var(--danger);
+  font-size: 0.8rem;
+}
+
 @media (max-width: 800px) {
   .cardGrid {
     grid-template-columns: repeat(2, 1fr);
@@ -1409,7 +1504,8 @@ textarea:focus {
 
   .contactGrid,
   .strategySummary,
-  .outreachGrid {
+  .outreachGrid,
+  .handoffGrid {
     grid-template-columns: 1fr;
   }
 

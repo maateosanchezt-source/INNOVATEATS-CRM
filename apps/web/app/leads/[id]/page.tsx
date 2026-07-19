@@ -18,6 +18,7 @@ import { evaluateResearchGate } from "@/lib/research-policy";
 import {
   crmRepository,
   environment,
+  inboundRepository,
   messageRepository,
   outreachRepository,
   safetyControlService
@@ -92,6 +93,7 @@ export default async function LeadDetailPage({
   }
   const messageWorkspace = await messageRepository().getWorkspace(lead.id);
   const outreachWorkspace = await outreachRepository().getWorkspace(lead.id);
+  const leadReplies = await inboundRepository().listRepliesForLead(lead.id);
 
   return (
     <main className="dashboardShell">
@@ -279,6 +281,20 @@ export default async function LeadDetailPage({
           }))
         }))}
       />
+
+      {leadReplies[0] !== undefined && (
+        <section className="foundationPanel">
+          <div>
+            <p className="eyebrow">LATEST HUMAN HANDOFF</p>
+            <h2>{leadReplies[0].classification.replaceAll("_", " ")} reply</h2>
+            <p>
+              Sequence stopped · priority {leadReplies[0].priority} ·{" "}
+              {leadReplies[0].handoffStatus === "owned" ? "Mateo-owned" : "ready for Mateo"}
+            </p>
+          </div>
+          <Link href={`/replies/${leadReplies[0].id}`}>Open handoff →</Link>
+        </section>
+      )}
 
       {lead.latestScore !== null && (
         <section className="scoreSection">

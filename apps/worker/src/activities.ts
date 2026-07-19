@@ -91,7 +91,8 @@ export function createOutreachActivities(
             clientId: environment.GMAIL_OAUTH_CLIENT_ID,
             clientSecret: environment.GMAIL_OAUTH_CLIENT_SECRET,
             redirectUri: environment.GMAIL_OAUTH_REDIRECT_URI,
-            senderEmail: message.senderEmail
+            senderEmail: message.senderEmail,
+            inboundReadonlyApproved: environment.GMAIL_INBOUND_OAUTH_APPROVED
           },
           refreshToken
         );

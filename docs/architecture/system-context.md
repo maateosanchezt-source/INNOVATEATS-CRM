@@ -47,3 +47,16 @@ Only the winner can transition `scheduled` to `sending`. Gmail dispatch has one 
 Provider ambiguity becomes `delivery_unknown`, stops the sequence, and requires manual
 reconciliation. Thread ID, `Message-ID`, `References`, and `In-Reply-To` preserve one Gmail
 conversation.
+
+## Reply boundary
+
+Inbound processing is independently closed by environment and database flags and requires an
+explicitly approved `gmail.readonly` OAuth grant. The worker uses Gmail history references, filters
+them against thread IDs from sent CRM messages, and only then fetches a full message. Unrelated
+mailbox bodies are never fetched or stored.
+
+A matched reply locks the same sequence row used by outbound claiming. In one transaction it stores
+the immutable message and classification, stops the sequence, cancels scheduled touches, applies
+suppression or a dated recheck, creates the handoff, and emits `sequence.stop`. The outbox processor
+signals Temporal so a durable timer wakes immediately. The database remains authoritative if the
+workflow has already closed. The handoff produces a draft only; no inbound path can call Gmail send.
