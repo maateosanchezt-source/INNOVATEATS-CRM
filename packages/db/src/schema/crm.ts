@@ -21,7 +21,11 @@ import type {
   EmailProviderVerdict,
   IcpDimensionKey,
   IcpRecommendedAction,
-  IcpScoreBreakdown
+  IcpScoreBreakdown,
+  MessageBrief,
+  MessageDraftContent,
+  MessageLanguage,
+  MessageQaReview
 } from "@innovateats/shared";
 
 import { regions } from "./foundations.js";
@@ -324,4 +328,95 @@ export const contactVerifications = pgTable(
     createdAt: createdAt()
   },
   (table) => [index("contact_verifications_contact_index").on(table.contactId, table.checkedAt)]
+);
+
+export const strategyBriefs = pgTable(
+  "strategy_briefs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "restrict" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "restrict" }),
+    language: text("language").$type<MessageLanguage>().notNull(),
+    diagnosis: text("diagnosis").notNull(),
+    opportunity: text("opportunity").notNull(),
+    mateoFit: text("mateo_fit").notNull(),
+    brief: jsonb("brief_json").$type<MessageBrief>().notNull(),
+    evidenceIds: jsonb("evidence_ids_json").$type<readonly string[]>().notNull(),
+    version: integer("version").default(1).notNull(),
+    supersedesId: uuid("supersedes_id"),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("strategy_briefs_supersedes_unique").on(table.supersedesId),
+    index("strategy_briefs_lead_created_index").on(table.leadId, table.createdAt)
+  ]
+);
+
+export const messageDrafts = pgTable(
+  "message_drafts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    strategyBriefId: uuid("strategy_brief_id")
+      .notNull()
+      .references(() => strategyBriefs.id, { onDelete: "restrict" }),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "restrict" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "restrict" }),
+    channel: text("channel").default("email").notNull(),
+    sequenceStep: integer("sequence_step").notNull(),
+    subject: text("subject"),
+    body: text("body").notNull(),
+    personalizationTokens: jsonb("personalization_tokens_json")
+      .$type<MessageDraftContent["personalizationTokens"]>()
+      .notNull(),
+    evidenceMap: jsonb("evidence_map_json").$type<MessageDraftContent["evidenceMap"]>().notNull(),
+    wordCount: integer("word_count").notNull(),
+    language: text("language").$type<MessageLanguage>().notNull(),
+    version: integer("version").default(1).notNull(),
+    supersedesId: uuid("supersedes_id"),
+    editSource: text("edit_source").$type<"agent" | "human">().default("agent").notNull(),
+    qa: jsonb("qa_json").$type<MessageQaReview>().notNull(),
+    qaPassed: boolean("qa_passed").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("message_drafts_brief_step_version_unique").on(
+      table.strategyBriefId,
+      table.sequenceStep,
+      table.version
+    ),
+    uniqueIndex("message_drafts_supersedes_unique").on(table.supersedesId),
+    index("message_drafts_lead_step_created_index").on(
+      table.leadId,
+      table.sequenceStep,
+      table.createdAt
+    )
+  ]
+);
+
+export const messageApprovals = pgTable(
+  "message_approvals",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    messageDraftId: uuid("message_draft_id")
+      .notNull()
+      .references(() => messageDrafts.id, { onDelete: "restrict" }),
+    decision: text("decision").$type<"approved" | "rejected">().notNull(),
+    reason: text("reason"),
+    actorId: text("actor_id").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("message_approval_one_decision_per_version").on(table.messageDraftId),
+    index("message_approvals_created_index").on(table.createdAt)
+  ]
 );

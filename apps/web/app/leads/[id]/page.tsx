@@ -2,17 +2,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { icpDimensionKeys, type IcpDimensionKey } from "@innovateats/shared";
+import { contactIsActionable, icpDimensionKeys, type IcpDimensionKey } from "@innovateats/shared";
 
 import { AppHeader } from "@/components/app-header";
 import { ContactIntelligence } from "@/components/contact-intelligence";
 import { EvidenceManager } from "@/components/evidence-manager";
+import { MessageApprovalWorkspace } from "@/components/message-approval-workspace";
 import { PipelineControl } from "@/components/pipeline-control";
 import { ResearchCaptureForm } from "@/components/research-capture-form";
 import { evaluateContactGate } from "@/lib/contact-policy";
+import { evaluateMessageGenerationGate } from "@/lib/message-policy";
 import { requirePageActor } from "@/lib/page-auth";
 import { evaluateResearchGate } from "@/lib/research-policy";
-import { crmRepository, environment, safetyControlService } from "@/lib/runtime";
+import { crmRepository, environment, messageRepository, safetyControlService } from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -55,8 +57,13 @@ export default async function LeadDetailPage({
 
   let researchEnabled = false;
   let contactEnabled = false;
+  let messageEnabled = false;
   const config = environment();
-  if (config.RESEARCH_ENABLED || config.CONTACT_ENRICHMENT_ENABLED) {
+  if (
+    config.RESEARCH_ENABLED ||
+    config.CONTACT_ENRICHMENT_ENABLED ||
+    config.MESSAGE_GENERATION_ENABLED
+  ) {
     try {
       const safety = await safetyControlService().snapshot();
       researchEnabled = evaluateResearchGate(
@@ -65,11 +72,18 @@ export default async function LeadDetailPage({
         "secure_fetch"
       ).allowed;
       contactEnabled = evaluateContactGate(config.CONTACT_ENRICHMENT_ENABLED, safety).allowed;
+      messageEnabled = evaluateMessageGenerationGate(
+        config.MESSAGE_GENERATION_ENABLED,
+        safety,
+        "message_strategy"
+      ).allowed;
     } catch {
       researchEnabled = false;
       contactEnabled = false;
+      messageEnabled = false;
     }
   }
+  const messageWorkspace = await messageRepository().getWorkspace(lead.id);
 
   return (
     <main className="dashboardShell">
@@ -185,6 +199,52 @@ export default async function LeadDetailPage({
           )
           .map((record) => ({ id: record.id, sourceUrl: record.sourceUrl }))}
         leadId={lead.id}
+      />
+
+      <MessageApprovalWorkspace
+        contacts={lead.contacts.map((contact) => ({
+          id: contact.id,
+          label: `${contact.fullName ?? contact.role ?? "Business contact"} · ${contact.value}`,
+          actionable:
+            !contact.doNotContact &&
+            (contact.channelType === "corporate_email" ||
+              contact.channelType === "named_business_email") &&
+            contactIsActionable(contact.origin, contact.verificationStatus)
+        }))}
+        defaultDiscoveryFact={
+          lead.discoverySignal ?? "An official public source documents the current product."
+        }
+        defaultBrand={lead.brandName}
+        defaultProduct={lead.productSummary ?? `${lead.brandName} food product`}
+        enabled={messageEnabled && lead.status === "contact_found"}
+        evidence={lead.evidence.map((record) => ({
+          id: record.id,
+          claim: record.claim,
+          sourceUrl: record.sourceUrl
+        }))}
+        leadId={lead.id}
+        workspace={{
+          brief:
+            messageWorkspace.brief === null
+              ? null
+              : {
+                  diagnosis: messageWorkspace.brief.diagnosis,
+                  opportunity: messageWorkspace.brief.opportunity,
+                  mateoFit: messageWorkspace.brief.mateoFit,
+                  brief: messageWorkspace.brief.brief
+                },
+          drafts: messageWorkspace.drafts.map((draft) => ({
+            ...draft,
+            createdAt: draft.createdAt.toISOString(),
+            approval:
+              draft.approval === null
+                ? null
+                : {
+                    ...draft.approval,
+                    createdAt: draft.approval.createdAt.toISOString()
+                  }
+          }))
+        }}
       />
 
       {lead.latestScore !== null && (

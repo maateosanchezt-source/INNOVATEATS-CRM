@@ -32,6 +32,18 @@ export {
   type SnapshotRecordResult
 } from "./repositories/research.js";
 export {
+  MessageDraftNotFoundError,
+  MessageStateError,
+  PostgresMessageRepository,
+  type ApprovalResult,
+  type MessageApprovalRecord,
+  type MessageDecision,
+  type MessageDraftRecord,
+  type MessageWorkspace,
+  type SaveGeneratedSequenceResult,
+  type StrategyBriefRecord
+} from "./repositories/message.js";
+export {
   PostgresSafetyControlRepository,
   type AuditActor
 } from "./repositories/safety-controls.js";

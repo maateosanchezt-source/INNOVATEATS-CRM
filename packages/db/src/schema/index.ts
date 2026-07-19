@@ -8,9 +8,12 @@ export {
   leads,
   leadScores,
   leadStatusHistory,
+  messageApprovals,
+  messageDrafts,
   organizations,
   sourceDocuments,
-  sources
+  sources,
+  strategyBriefs
 } from "./crm.js";
 export {
   auditLog,
@@ -31,9 +34,12 @@ import {
   leads,
   leadScores,
   leadStatusHistory,
+  messageApprovals,
+  messageDrafts,
   organizations,
   sourceDocuments,
-  sources
+  sources,
+  strategyBriefs
 } from "./crm.js";
 import {
   auditLog,
@@ -57,12 +63,15 @@ export const schema = {
   leads,
   leadScores,
   leadStatusHistory,
+  messageApprovals,
+  messageDrafts,
   organizations,
   regions,
   schemaMigrations,
   session,
   sourceDocuments,
   sources,
+  strategyBriefs,
   systemSettings,
   user,
   verification

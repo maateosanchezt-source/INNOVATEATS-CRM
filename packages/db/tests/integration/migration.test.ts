@@ -52,7 +52,10 @@ describe("database migrations", () => {
           'leads',
           'lead_scores',
           'evidence',
-          'lead_status_history'
+          'lead_status_history',
+          'strategy_briefs',
+          'message_drafts',
+          'message_approvals'
         )
       ORDER BY table_name
     `);
@@ -70,10 +73,13 @@ describe("database migrations", () => {
       "lead_scores",
       "lead_status_history",
       "leads",
+      "message_approvals",
+      "message_drafts",
       "organizations",
       "session",
       "source_documents",
       "sources",
+      "strategy_briefs",
       "user",
       "verification"
     ]);
@@ -504,5 +510,259 @@ describe("database migrations", () => {
     await expect(
       database.exec("UPDATE contact_verifications SET reason = 'tampered'")
     ).rejects.toThrow(/append-only/);
+  });
+
+  it("enforces immutable message lineage, evidence, website, and latest-version approval", async () => {
+    await database.exec(`
+      INSERT INTO sources (id, type, name)
+      VALUES (
+        '30000000-0000-4000-8000-000000000094',
+        'secure_fetch',
+        'Message fixture'
+      );
+
+      INSERT INTO source_documents (
+        id, source_id, url, canonical_url, content_hash, trust_level
+      ) VALUES (
+        '31000000-0000-4000-8000-000000000094',
+        '30000000-0000-4000-8000-000000000094',
+        'https://message-fixture.example.test.invalid',
+        'https://message-fixture.example.test.invalid',
+        '${"b".repeat(64)}',
+        'primary'
+      );
+
+      INSERT INTO organizations (
+        id, normalized_name, display_name, canonical_domain, country, stage
+      ) VALUES (
+        '10000000-0000-4000-8000-000000000094',
+        'message fixture',
+        'Message Fixture',
+        'message-fixture.example.test.invalid',
+        'Spain',
+        'prelaunch'
+      );
+
+      INSERT INTO leads (id, organization_id, status)
+      VALUES (
+        '20000000-0000-4000-8000-000000000094',
+        '10000000-0000-4000-8000-000000000094',
+        'contact_found'
+      );
+
+      INSERT INTO evidence (
+        id,
+        lead_id,
+        source_document_id,
+        fact_type,
+        claim,
+        quote_or_summary,
+        source_url,
+        observed_at,
+        confidence,
+        created_by
+      ) VALUES (
+        '40000000-0000-4000-8000-000000000094',
+        '20000000-0000-4000-8000-000000000094',
+        '31000000-0000-4000-8000-000000000094',
+        'product',
+        'Official product fact',
+        'Official product fact',
+        'https://message-fixture.example.test.invalid',
+        now(),
+        1,
+        'test'
+      );
+
+      INSERT INTO contacts (
+        id,
+        organization_id,
+        source_document_id,
+        evidence_id,
+        channel_type,
+        value,
+        normalized_value,
+        direct_url,
+        source_url,
+        origin,
+        provenance,
+        verification_status,
+        confidence
+      ) VALUES (
+        '70000000-0000-4000-8000-000000000094',
+        '10000000-0000-4000-8000-000000000094',
+        '31000000-0000-4000-8000-000000000094',
+        '40000000-0000-4000-8000-000000000094',
+        'corporate_email',
+        'hello@message-fixture.example.test.invalid',
+        'hello@message-fixture.example.test.invalid',
+        'mailto:hello@message-fixture.example.test.invalid',
+        'https://message-fixture.example.test.invalid',
+        'published_public',
+        'Official mailto',
+        'published_verified',
+        1
+      );
+
+      INSERT INTO strategy_briefs (
+        id,
+        lead_id,
+        contact_id,
+        language,
+        diagnosis,
+        opportunity,
+        mateo_fit,
+        brief_json,
+        evidence_ids_json,
+        created_by
+      ) VALUES (
+        '80000000-0000-4000-8000-000000000094',
+        '20000000-0000-4000-8000-000000000094',
+        '70000000-0000-4000-8000-000000000094',
+        'en',
+        'Evidence-backed diagnosis',
+        'Specific opportunity',
+        'integrated operator',
+        '{"contactId":"70000000-0000-4000-8000-000000000094","brandName":"Message Fixture","language":"en","evidenceIds":["40000000-0000-4000-8000-000000000094"]}',
+        '["40000000-0000-4000-8000-000000000094"]',
+        'test'
+      );
+
+      INSERT INTO message_drafts (
+        id,
+        strategy_brief_id,
+        lead_id,
+        contact_id,
+        sequence_step,
+        subject,
+        body,
+        personalization_tokens_json,
+        evidence_map_json,
+        word_count,
+        language,
+        qa_json,
+        qa_passed,
+        created_by
+      ) VALUES (
+        '90000000-0000-4000-8000-000000000094',
+        '80000000-0000-4000-8000-000000000094',
+        '20000000-0000-4000-8000-000000000094',
+        '70000000-0000-4000-8000-000000000094',
+        1,
+        'A specific opportunity',
+        'Official product fact. Message Fixture has a specific opportunity. InnovatEats: https://innovateats.com',
+        '["Message Fixture","specific opportunity"]',
+        '[{"textSpan":"Official product fact.","kind":"fact","evidenceIds":["40000000-0000-4000-8000-000000000094"]}]',
+        11,
+        'en',
+        '{"passed":true}',
+        true,
+        'test'
+      );
+    `);
+
+    await expect(
+      database.exec(`
+        INSERT INTO message_drafts (
+          strategy_brief_id,
+          lead_id,
+          contact_id,
+          sequence_step,
+          body,
+          personalization_tokens_json,
+          evidence_map_json,
+          word_count,
+          language,
+          qa_json,
+          qa_passed,
+          created_by
+        ) VALUES (
+          '80000000-0000-4000-8000-000000000094',
+          '20000000-0000-4000-8000-000000000094',
+          '70000000-0000-4000-8000-000000000094',
+          2,
+          'This draft deliberately omits the required site.',
+          '["Message Fixture","opportunity"]',
+          '[{"textSpan":"Inference","kind":"inference","evidenceIds":[]}]',
+          8,
+          'en',
+          '{"passed":true}',
+          true,
+          'test'
+        )
+      `)
+    ).rejects.toThrow();
+
+    await database.exec(`
+      INSERT INTO message_drafts (
+        id,
+        strategy_brief_id,
+        lead_id,
+        contact_id,
+        sequence_step,
+        subject,
+        body,
+        personalization_tokens_json,
+        evidence_map_json,
+        word_count,
+        language,
+        version,
+        supersedes_id,
+        edit_source,
+        qa_json,
+        qa_passed,
+        created_by
+      ) VALUES (
+        '90000000-0000-4000-8000-000000000093',
+        '80000000-0000-4000-8000-000000000094',
+        '20000000-0000-4000-8000-000000000094',
+        '70000000-0000-4000-8000-000000000094',
+        1,
+        'A refined opportunity',
+        'Official product fact. Message Fixture has a refined specific opportunity. InnovatEats: https://innovateats.com',
+        '["Message Fixture","specific opportunity"]',
+        '[{"textSpan":"Official product fact.","kind":"fact","evidenceIds":["40000000-0000-4000-8000-000000000094"]}]',
+        12,
+        'en',
+        2,
+        '90000000-0000-4000-8000-000000000094',
+        'human',
+        '{"passed":true}',
+        true,
+        'test'
+      );
+    `);
+
+    await expect(
+      database.exec(`
+        INSERT INTO message_approvals (message_draft_id, decision, actor_id)
+        VALUES (
+          '90000000-0000-4000-8000-000000000094',
+          'approved',
+          'maateosanchezt@gmail.com'
+        )
+      `)
+    ).rejects.toThrow(/latest message draft version/);
+
+    await database.exec(`
+      INSERT INTO message_approvals (message_draft_id, decision, actor_id)
+      VALUES (
+        '90000000-0000-4000-8000-000000000093',
+        'approved',
+        'maateosanchezt@gmail.com'
+      )
+    `);
+
+    await expect(
+      database.exec(`
+        UPDATE message_drafts
+        SET body = 'Tampered https://innovateats.com'
+        WHERE id = '90000000-0000-4000-8000-000000000093'
+      `)
+    ).rejects.toThrow(/immutable and append-only/);
+    await expect(database.exec("DELETE FROM strategy_briefs")).rejects.toThrow(
+      /immutable and append-only/
+    );
+    await expect(database.exec("DELETE FROM message_approvals")).rejects.toThrow(/append-only/);
   });
 });

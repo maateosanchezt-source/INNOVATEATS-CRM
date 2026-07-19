@@ -28,6 +28,9 @@
 | Fabricated contact   | Deterministic public-link extraction, exact evidence provenance, association trigger, and no inferred-to-verified transition           |
 | MX overclaim         | Syntax, MX, and mailbox-provider verdicts are separate statuses; MX alone is never mailbox verification                                |
 | Contact reassignment | Immutable contact identity/provenance and database validation against active lead evidence                                             |
+| Unsupported copy     | Per-span evidence map, deterministic QA, same-lead database checks, and human approval                                                 |
+| Approval drift       | Immutable draft versions; approval binds to one latest QA-passed version                                                               |
+| Spam-like sequence   | Three-touch maximum, bounded copy, one low-friction CTA, easy-out close, and website attribution                                       |
 | Duplicate send       | Unique idempotency key plus transactional outbox                                                                                       |
 | Send after reply     | Temporal signal plus pre-send database check                                                                                           |
 | Suppression bypass   | Checks at approval, scheduling, and send                                                                                               |
@@ -39,3 +42,7 @@
 ## Phase 3 boundary
 
 Research can fetch public content and can call a configured OpenAI model. Contact enrichment can parse stored official snapshots and perform a gated MX lookup. Neither subsystem can access Gmail, send email, mutate terminal state through an agent tool, or bypass deterministic entity, scoring, association, and verification gates. Both are off by default and additionally controlled by database flags and kill switches.
+
+## Phase 4 boundary
+
+Message generation consumes stored contact and evidence state. It can create immutable strategy, draft, QA, version, and approval records, but it cannot schedule work, access Gmail, or send email. Generation is disabled by default and requires environment/database gates plus clear kill switches. Every approved version retains the required InnovatEats website and active same-lead factual evidence.

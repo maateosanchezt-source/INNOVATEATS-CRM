@@ -2,7 +2,7 @@
 
 Internal, single-tenant operating system for evidence-based CPG research, compliant outreach, and high-quality sales handoff.
 
-## Current status: Phase 3
+## Current status: Phase 4
 
 Foundations establish:
 
@@ -43,7 +43,17 @@ Phase 3 adds contact intelligence:
 - a hard invariant that inferred email patterns never become verified contacts;
 - authenticated extraction and verification controls in the lead view.
 
-Research and contact enrichment remain disabled by default and each requires both configuration and a database feature flag. No real email can be sent by Phase 3.
+Phase 4 adds message strategy and human approval:
+
+- typed diagnosis, opportunity, execution-step, and Mateo-fit briefs;
+- exactly three constrained email drafts with 20 English/Spanish golden fixtures;
+- per-span evidence maps and deterministic factuality, specificity, and sales QA;
+- immutable generated drafts and human-edit versions with before/after comparison;
+- append-only approval decisions bound to the latest QA-passed version;
+- database enforcement of same-lead evidence and `https://innovateats.com` in every email;
+- authenticated generation, editing, evidence review, and approval controls in the lead view.
+
+Research, contact enrichment, and message generation remain disabled by default and each requires both configuration and a database feature flag. No scheduling or real email sending is possible in Phase 4.
 
 ## Prerequisites
 
@@ -97,3 +107,4 @@ Docker smoke verification is documented in `docs/testing/phase-0-verification.md
 CRM verification is documented in `docs/testing/phase-1-verification.md`.
 Research-engine verification is documented in `docs/testing/phase-2-verification.md`.
 Contact-engine verification is documented in `docs/testing/phase-3-verification.md`.
+Message and approval verification is documented in `docs/testing/phase-4-verification.md`.
