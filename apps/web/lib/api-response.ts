@@ -3,8 +3,10 @@ import { ZodError } from "zod";
 import {
   EvidenceNotFoundError,
   InvalidLeadTransitionError,
-  LeadNotFoundError
+  LeadNotFoundError,
+  ResearchStateError
 } from "@innovateats/db";
+import { SecureFetchError } from "@innovateats/integrations";
 
 export function apiErrorResponse(error: unknown): Response {
   if (error instanceof SyntaxError) {
@@ -38,6 +40,21 @@ export function apiErrorResponse(error: unknown): Response {
     return Response.json(
       { error: { code: "invalid_transition", message: error.message } },
       { status: 409 }
+    );
+  }
+
+  if (error instanceof ResearchStateError) {
+    return Response.json(
+      { error: { code: "invalid_research_state", message: error.message } },
+      { status: 409 }
+    );
+  }
+
+  if (error instanceof SecureFetchError) {
+    const status = error.code === "transport_failure" ? 502 : 400;
+    return Response.json(
+      { error: { code: `secure_fetch_${error.code}`, message: error.message } },
+      { status }
     );
   }
 

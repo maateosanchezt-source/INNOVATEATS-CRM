@@ -6,3 +6,14 @@ export interface TypedAgentProposal<TOutput> {
   readonly output: TOutput;
   readonly evidenceIds: readonly string[];
 }
+
+export {
+  deduplicateCandidates,
+  normalizeEntityName,
+  type CandidateDedupeResult,
+  type CandidateDuplicate
+} from "./dedupe.js";
+export { decideEntityResolution, entityAutoResolveThreshold } from "./entity-resolver.js";
+export { scoreIcpAssessment } from "./icp-scorer.js";
+export { OpenAiResearchAgents } from "./openai-research-agents.js";
+export { OpenAiWebSearchProvider } from "./openai-search-provider.js";

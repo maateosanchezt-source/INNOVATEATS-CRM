@@ -1,4 +1,4 @@
-# Phase 0 threat model
+# Threat model
 
 ## Assets
 
@@ -18,19 +18,21 @@
 
 ## Primary threats and controls
 
-| Threat             | Baseline control                                                         |
-| ------------------ | ------------------------------------------------------------------------ |
-| Unauthorized user  | Exact Google email allowlist; server-side session checks                 |
-| Prompt injection   | External content is data; fixed tools; strict schemas                    |
-| SSRF               | Future secure-fetch adapter denies private networks and unsafe redirects |
-| Duplicate send     | Unique idempotency key plus transactional outbox                         |
-| Send after reply   | Temporal signal plus pre-send database check                             |
-| Suppression bypass | Checks at approval, scheduling, and send                                 |
-| Audit tampering    | Database trigger denies update/delete                                    |
-| Secret leakage     | Environment-only secrets and structured log redaction                    |
-| Cost loop          | Daily/per-lead budgets and hard pause                                    |
-| Policy regression  | Versioned fixtures and fail-closed resolution                            |
+| Threat              | Baseline control                                                                                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Unauthorized user   | Exact Google email allowlist; server-side session checks                                                                               |
+| Prompt injection    | External content is data; fixed tools; strict schemas                                                                                  |
+| SSRF/DNS rebinding  | Resolve every address, deny non-public ranges, pin the approved address, preserve Host/SNI, and revalidate every redirect              |
+| Hostile web content | Content is inert data; scripts/styles are removed; agent prompts delimit untrusted input; research agents have no state-changing tools |
+| Robots/rate abuse   | Fail-closed robots policy, bounded fetches, explicit user agent, and provider-level throttling                                         |
+| Duplicate send      | Unique idempotency key plus transactional outbox                                                                                       |
+| Send after reply    | Temporal signal plus pre-send database check                                                                                           |
+| Suppression bypass  | Checks at approval, scheduling, and send                                                                                               |
+| Audit tampering     | Database trigger denies update/delete                                                                                                  |
+| Secret leakage      | Environment-only secrets and structured log redaction                                                                                  |
+| Cost loop           | Daily/per-lead budgets and hard pause                                                                                                  |
+| Policy regression   | Versioned fixtures and fail-closed resolution                                                                                          |
 
-## Explicitly deferred
+## Phase 2 boundary
 
-Phase 0 does not fetch public content, call OpenAI, access Gmail, or send email.
+Research can fetch public content and can call a configured OpenAI model. It cannot access Gmail, send email, mutate pipeline state through an agent tool, or bypass deterministic entity and scoring gates. Research is off by default and additionally controlled by database flags and kill switches.

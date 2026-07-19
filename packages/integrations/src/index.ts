@@ -11,3 +11,23 @@ export class PhaseZeroProviderDisabledError extends Error {
     this.name = "PhaseZeroProviderDisabledError";
   }
 }
+
+export {
+  DisabledSearchProvider,
+  FixtureSearchProvider,
+  SearchProviderDisabledError,
+  type SearchProvider
+} from "./search-provider.js";
+export {
+  isPublicIpAddress,
+  NodePinnedHttpTransport,
+  NodePublicDnsResolver,
+  SecureFetchError,
+  SecurePublicFetcher,
+  type PinnedHttpRequest,
+  type PinnedHttpResponse,
+  type PinnedHttpTransport,
+  type PublicDnsResolver,
+  type ResolvedAddress,
+  type SecurePublicFetcherOptions
+} from "./secure-fetch.js";

@@ -2,7 +2,7 @@
 
 Internal, single-tenant operating system for evidence-based CPG research, compliant outreach, and high-quality sales handoff.
 
-## Current status: Phase 1
+## Current status: Phase 2
 
 Foundations establish:
 
@@ -16,7 +16,7 @@ Foundations establish:
 - a global dry-run contract;
 - an invariant that every outreach email contains `https://innovateats.com`.
 
-Phase 1 adds a usable, agent-free CRM core:
+Phase 1 adds a usable CRM core:
 
 - manual public-URL ingest with canonical-domain deduplication;
 - lead inbox, filters, lead detail, and guarded pipeline transitions;
@@ -24,7 +24,17 @@ Phase 1 adds a usable, agent-free CRM core:
 - immutable evidence content and append-only mutation audit;
 - three clearly labelled synthetic leads for acceptance testing.
 
-No real email can be sent by Phase 1. Manual ingest stores the URL and provenance but does not fetch it.
+Phase 2 adds a guarded research engine:
+
+- provider-neutral search and typed regional-scout contracts;
+- a secure public fetcher with DNS validation, address pinning, redirect revalidation, robots checks, byte/time limits, and inert text extraction;
+- immutable source snapshots and versioned evidence provenance;
+- deterministic entity-resolution, deduplication, and ICP scoring gates;
+- append-only score and agent-run records;
+- narrowly scoped OpenAI Agents SDK adapters with structured outputs and no state-changing tools;
+- authenticated research, entity-resolution, and scoring endpoints plus score explanations in the lead view.
+
+Research remains disabled by default and requires both configuration and a database feature flag. No real email can be sent by Phase 2.
 
 ## Prerequisites
 
@@ -76,3 +86,4 @@ pnpm db:migrate:check
 
 Docker smoke verification is documented in `docs/testing/phase-0-verification.md`.
 CRM verification is documented in `docs/testing/phase-1-verification.md`.
+Research-engine verification is documented in `docs/testing/phase-2-verification.md`.

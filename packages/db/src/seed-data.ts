@@ -5,6 +5,7 @@ import {
   evidence,
   featureFlags,
   leads,
+  leadScores,
   leadStatusHistory,
   organizations,
   regions,
@@ -39,6 +40,7 @@ const crmSeed = [
     leadId: "20000000-0000-4000-8000-000000000001",
     documentId: "30000000-0000-4000-8000-000000000001",
     evidenceId: "40000000-0000-4000-8000-000000000001",
+    scoreId: "60000000-0000-4000-8000-000000000001",
     brand: "Northstar Gummies — sample",
     domain: "northstar-gummies.seed.innovateats.com",
     country: "United States",
@@ -55,6 +57,7 @@ const crmSeed = [
     leadId: "20000000-0000-4000-8000-000000000002",
     documentId: "30000000-0000-4000-8000-000000000002",
     evidenceId: "40000000-0000-4000-8000-000000000002",
+    scoreId: null,
     brand: "Luma Chews — sample",
     domain: "luma-chews.seed.innovateats.com",
     country: "Spain",
@@ -71,6 +74,7 @@ const crmSeed = [
     leadId: "20000000-0000-4000-8000-000000000003",
     documentId: "30000000-0000-4000-8000-000000000003",
     evidenceId: "40000000-0000-4000-8000-000000000003",
+    scoreId: null,
     brand: "Cultiva Bar — sample",
     domain: "cultiva-bar.seed.innovateats.com",
     country: "United Kingdom",
@@ -227,6 +231,48 @@ export async function seedFoundations(database: AppDatabase): Promise<void> {
           reason: "Synthetic acceptance fixture",
           actorId: "phase-1-seed"
         });
+      }
+
+      if (item.scoreId !== null) {
+        await transaction
+          .insert(leadScores)
+          .values({
+            id: item.scoreId,
+            leadId: item.leadId,
+            rubricVersion: "icp-v1",
+            breakdown: {
+              productCategory: 15,
+              trendFit: 15,
+              outsourceability: 10,
+              stage: 15,
+              strategicGap: 10,
+              needSignal: 8,
+              founderAccess: 7,
+              abilityToInvest: 3,
+              innovateatsDifferential: 5
+            },
+            explanations: {
+              productCategory: "Synthetic fixture: one hero gummy format.",
+              trendFit: "Synthetic fixture: a clearly declared functional trend.",
+              outsourceability: "Synthetic fixture: an existing specialized process is assumed.",
+              stage: "Synthetic fixture: crowdfunding and first-production stage.",
+              strategicGap: "Synthetic fixture: a material launch gap is declared.",
+              needSignal: "Synthetic fixture: crowdfunding is the need signal.",
+              founderAccess: "Synthetic fixture: a public founder profile is assumed.",
+              abilityToInvest: "Synthetic fixture: partial production signals are declared.",
+              innovateatsDifferential:
+                "Synthetic fixture: product, brand, and ecommerce work are relevant."
+            },
+            total: 88,
+            confidence: 0.75,
+            evidenceIds: [item.evidenceId],
+            missingInformation: ["Verified manufacturing route", "Verified founder contact"],
+            hardExclusion: false,
+            exclusionReason: null,
+            recommendedAction: "advance",
+            createdBy: "phase-2-seed"
+          })
+          .onConflictDoNothing();
       }
     }
   });

@@ -2,11 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
+import { icpDimensionKeys, type IcpDimensionKey } from "@innovateats/shared";
+
 import { AppHeader } from "@/components/app-header";
 import { EvidenceManager } from "@/components/evidence-manager";
 import { PipelineControl } from "@/components/pipeline-control";
+import { ResearchCaptureForm } from "@/components/research-capture-form";
 import { requirePageActor } from "@/lib/page-auth";
-import { crmRepository } from "@/lib/runtime";
+import { evaluateResearchGate } from "@/lib/research-policy";
+import { crmRepository, environment, safetyControlService } from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +21,18 @@ function formatDate(value: Date): string {
     timeZone: "UTC"
   }).format(value);
 }
+
+const dimensionLabels: Readonly<Record<IcpDimensionKey, string>> = {
+  productCategory: "Product / category",
+  trendFit: "Trend fit",
+  outsourceability: "Outsourceability",
+  stage: "Stage",
+  strategicGap: "Strategic gap",
+  needSignal: "Need signal",
+  founderAccess: "Founder access",
+  abilityToInvest: "Ability to invest",
+  innovateatsDifferential: "InnovatEats differential"
+};
 
 export default async function LeadDetailPage({
   params
@@ -33,6 +49,21 @@ export default async function LeadDetailPage({
 
   if (lead === null) {
     notFound();
+  }
+
+  let researchEnabled = false;
+  const config = environment();
+  if (config.RESEARCH_ENABLED) {
+    try {
+      const gate = evaluateResearchGate(
+        true,
+        await safetyControlService().snapshot(),
+        "secure_fetch"
+      );
+      researchEnabled = gate.allowed;
+    } catch {
+      researchEnabled = false;
+    }
   }
 
   return (
@@ -92,6 +123,71 @@ export default async function LeadDetailPage({
         </article>
         <PipelineControl currentStatus={lead.status} leadId={lead.id} />
       </section>
+
+      <section className="researchGrid">
+        <article className="controlCard">
+          <p className="eyebrow">PUBLIC RESEARCH</p>
+          <h2>Capture, pin, hash.</h2>
+          <p className="mutedText">
+            DNS is revalidated and pinned, redirects are checked, robots rules are enforced, and
+            scripts never execute.
+          </p>
+          <ResearchCaptureForm
+            defaultUrl={`https://${lead.canonicalDomain}`}
+            enabled={researchEnabled}
+            leadId={lead.id}
+          />
+        </article>
+        <article className="summaryCard">
+          <p className="eyebrow">ENTITY</p>
+          <h2>{lead.founders.length > 0 ? "Founder evidence" : "Founder pending"}</h2>
+          {lead.founders.length === 0 ? (
+            <p className="mutedText">
+              Entity resolution has not attached a founder with sufficient confidence.
+            </p>
+          ) : (
+            <ul className="founderList">
+              {lead.founders.map((founder) => (
+                <li key={founder.id}>
+                  <strong>{founder.name}</strong>
+                  <span>{founder.role}</span>
+                  <small>{Math.round(founder.confidence * 100)}% confidence</small>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+      </section>
+
+      {lead.latestScore !== null && (
+        <section className="scoreSection">
+          <div className="sectionHeading">
+            <div>
+              <p className="eyebrow">ICP {lead.latestScore.rubricVersion}</p>
+              <h2>Why this score is {lead.latestScore.total}/100</h2>
+            </div>
+            <span className="countPill">
+              {lead.latestScore.recommendedAction.replaceAll("_", " ")}
+            </span>
+          </div>
+          <div className="scoreBreakdown">
+            {icpDimensionKeys.map((dimension) => (
+              <article key={dimension}>
+                <div>
+                  <strong>{dimensionLabels[dimension]}</strong>
+                  <span>{lead.latestScore?.breakdown[dimension]}</span>
+                </div>
+                <p>{lead.latestScore?.explanations[dimension]}</p>
+              </article>
+            ))}
+          </div>
+          {lead.latestScore.missingInformation.length > 0 && (
+            <p className="scoreMissing">
+              Missing: {lead.latestScore.missingInformation.join(" · ")}
+            </p>
+          )}
+        </section>
+      )}
 
       <EvidenceManager
         leadId={lead.id}
