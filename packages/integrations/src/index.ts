@@ -23,6 +23,22 @@ export {
   type VerifyBusinessEmailOptions
 } from "./email-verifier.js";
 export {
+  buildRawGmailMessage,
+  decryptGmailRefreshToken,
+  encryptGmailRefreshToken,
+  gmailIdentityScopes,
+  gmailSendScope,
+  GoogleGmailGateway,
+  GoogleGmailOAuth,
+  outboundInternetMessageId,
+  renderOutboundBody,
+  type GmailGateway,
+  type GmailOAuthConfiguration,
+  type GmailOAuthGrant,
+  type GmailSendInput,
+  type GmailSendResult
+} from "./gmail.js";
+export {
   DisabledSearchProvider,
   FixtureSearchProvider,
   SearchProviderDisabledError,

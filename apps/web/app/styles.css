@@ -1267,6 +1267,110 @@ textarea:focus {
   font-size: 0.82rem;
 }
 
+.outreachSection {
+  margin: 40px 0;
+}
+
+.outreachGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 20px;
+}
+
+.outreachForm {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.outreachForm label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.outreachForm input,
+.outreachForm select {
+  width: 100%;
+}
+
+.modePill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #eef6ef;
+  color: #275d36;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.modePill.production {
+  background: #fff0ed;
+  color: #8f2d21;
+}
+
+.modePill.sandbox {
+  background: #fff8df;
+  color: #745710;
+}
+
+.connectButton {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+}
+
+.safetyNote {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.sequenceList {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.sequenceCard {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.sequenceCard > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sequenceCard small {
+  color: var(--muted);
+}
+
+.sequenceCard ol {
+  margin: 12px 0;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.sequenceActions {
+  display: flex;
+  gap: 8px;
+}
+
+.sequenceActions button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: white;
+}
+
 @media (max-width: 800px) {
   .cardGrid {
     grid-template-columns: repeat(2, 1fr);
@@ -1304,7 +1408,8 @@ textarea:focus {
   }
 
   .contactGrid,
-  .strategySummary {
+  .strategySummary,
+  .outreachGrid {
     grid-template-columns: 1fr;
   }
 

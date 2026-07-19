@@ -44,6 +44,24 @@ export {
   type StrategyBriefRecord
 } from "./repositories/message.js";
 export {
+  GmailOAuthStateError,
+  PostgresGmailAuthRepository,
+  type ConsumedGmailOAuthState,
+  type GmailCredentialRecord,
+  type GmailSenderRecord
+} from "./repositories/gmail-auth.js";
+export {
+  OutreachStateError,
+  PostgresOutreachRepository,
+  type ClaimedOutbound,
+  type ClaimOutboundResult,
+  type CreatedSequence,
+  type CreateSequenceInput,
+  type OutboxEventRecord,
+  type RuntimeSendGate,
+  type SequenceWorkspace
+} from "./repositories/outreach.js";
+export {
   PostgresSafetyControlRepository,
   type AuditActor
 } from "./repositories/safety-controls.js";

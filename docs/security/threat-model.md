@@ -46,3 +46,12 @@ Research can fetch public content and can call a configured OpenAI model. Contac
 ## Phase 4 boundary
 
 Message generation consumes stored contact and evidence state. It can create immutable strategy, draft, QA, version, and approval records, but it cannot schedule work, access Gmail, or send email. Generation is disabled by default and requires environment/database gates plus clear kill switches. Every approved version retains the required InnovatEats website and active same-lead factual evidence.
+
+## Phase 5 boundary
+
+Scheduling creates durable work but does not itself call Gmail. The worker can access the newest
+encrypted Gmail grant only after an outbound row is atomically claimed and every current safety
+condition passes. Dispatch has one Temporal attempt. An ambiguous result becomes
+`delivery_unknown`, stops the sequence, and cannot be automatically retried. Dry run has no external
+action; sandbox rewrites the recipient to Mateo; production remains unapproved and closed by
+default. Reply classification and automatic bounce/unsubscribe ingestion remain outside this phase.

@@ -22,6 +22,8 @@
     "@innovateats/feature-flags": "workspace:*",
     "@innovateats/integrations": "workspace:*",
     "@innovateats/shared": "workspace:*",
+    "@innovateats/workflows": "workspace:*",
+    "@temporalio/client": "1.20.3",
     "better-auth": "1.6.23",
     "next": "16.2.10",
     "react": "19.2.7",

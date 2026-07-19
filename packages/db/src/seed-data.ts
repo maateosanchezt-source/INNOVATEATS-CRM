@@ -2,6 +2,7 @@ import { defaultFeatureFlags, type FeatureFlagKey } from "@innovateats/shared";
 
 import type { AppDatabase } from "./client.js";
 import {
+  campaigns,
   evidence,
   featureFlags,
   leads,
@@ -9,6 +10,7 @@ import {
   leadStatusHistory,
   organizations,
   regions,
+  senders,
   sourceDocuments,
   sources,
   systemSettings
@@ -125,6 +127,32 @@ export async function seedFoundations(database: AppDatabase): Promise<void> {
         key: "required_outreach_website",
         value: "https://innovateats.com",
         updatedBy: "phase-0-seed"
+      })
+      .onConflictDoNothing();
+
+    await transaction
+      .insert(campaigns)
+      .values({
+        id: "90000000-0000-4000-8000-000000000001",
+        name: "Manual approved outreach",
+        active: true,
+        sequenceVersion: "three-touch-v1",
+        dailyCap: 10,
+        dailyDomainCap: 1,
+        approvalMode: "approved_send"
+      })
+      .onConflictDoNothing();
+
+    await transaction
+      .insert(senders)
+      .values({
+        id: "91000000-0000-4000-8000-000000000001",
+        email: "maateosanchezt@gmail.com",
+        displayName: "Mateo Sanchez / InnovatEats",
+        active: false,
+        sandbox: true,
+        dailyCap: 10,
+        timezone: "Europe/Madrid"
       })
       .onConflictDoNothing();
 

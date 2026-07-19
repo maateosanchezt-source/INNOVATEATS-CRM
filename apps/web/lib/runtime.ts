@@ -8,7 +8,9 @@ import {
   createDatabaseClient,
   PostgresContactRepository,
   PostgresCrmRepository,
+  PostgresGmailAuthRepository,
   PostgresMessageRepository,
+  PostgresOutreachRepository,
   PostgresResearchRepository,
   PostgresSafetyControlRepository,
   type DatabaseClient
@@ -16,15 +18,18 @@ import {
 import { SafetyControlService } from "@innovateats/feature-flags";
 import {
   DisabledEmailVerificationProvider,
+  GoogleGmailOAuth,
   NodeMxResolver,
   SecurePublicFetcher
 } from "@innovateats/integrations";
+import { Client, Connection } from "@temporalio/client";
 
 const localDevelopmentSecret = "innovateats-local-development-secret-do-not-use-in-production";
 
 interface RuntimeSingletons {
   database?: DatabaseClient;
   auth?: ReturnType<typeof createInternalAuth>;
+  temporal?: Promise<Client>;
 }
 
 const globalRuntime = globalThis as typeof globalThis & {
@@ -96,6 +101,44 @@ export function contactRepository(): PostgresContactRepository {
 
 export function messageRepository(): PostgresMessageRepository {
   return new PostgresMessageRepository(databaseClient().db);
+}
+
+export function outreachRepository(): PostgresOutreachRepository {
+  return new PostgresOutreachRepository(databaseClient().db);
+}
+
+export function gmailAuthRepository(): PostgresGmailAuthRepository {
+  return new PostgresGmailAuthRepository(databaseClient().db);
+}
+
+export function gmailOAuth(): GoogleGmailOAuth {
+  const config = environment();
+  if (
+    config.GMAIL_OAUTH_CLIENT_ID === undefined ||
+    config.GMAIL_OAUTH_CLIENT_SECRET === undefined ||
+    config.GMAIL_OAUTH_REDIRECT_URI === undefined ||
+    config.GMAIL_OAUTH_REDIRECT_URI === ""
+  ) {
+    throw new Error("Gmail OAuth is not configured.");
+  }
+  return new GoogleGmailOAuth({
+    clientId: config.GMAIL_OAUTH_CLIENT_ID,
+    clientSecret: config.GMAIL_OAUTH_CLIENT_SECRET,
+    redirectUri: config.GMAIL_OAUTH_REDIRECT_URI,
+    senderEmail: config.GMAIL_SENDER_EMAIL || config.AUTHORIZED_EMAIL
+  });
+}
+
+export function temporalClient(): Promise<Client> {
+  const runtime = singletons();
+  runtime.temporal ??= Connection.connect({ address: environment().TEMPORAL_ADDRESS }).then(
+    (connection) =>
+      new Client({
+        connection,
+        namespace: environment().TEMPORAL_NAMESPACE
+      })
+  );
+  return runtime.temporal;
 }
 
 export function emailVerificationProvider(): DisabledEmailVerificationProvider {

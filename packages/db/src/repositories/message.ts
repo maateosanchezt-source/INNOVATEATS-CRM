@@ -24,7 +24,8 @@ import {
   messageApprovals,
   messageDrafts,
   organizations,
-  strategyBriefs
+  strategyBriefs,
+  suppressionList
 } from "../schema/index.js";
 import { LeadNotFoundError } from "./crm.js";
 
@@ -468,6 +469,23 @@ export class PostgresMessageRepository {
       }
       if (!row.draft.qaPassed) {
         throw new MessageStateError("Only a QA-passed message draft can be decided.");
+      }
+      if (decision === "approved") {
+        const [suppressed] = await transaction
+          .select({ id: suppressionList.id })
+          .from(contacts)
+          .innerJoin(
+            suppressionList,
+            and(
+              eq(suppressionList.normalizedContact, contacts.normalizedValue),
+              eq(suppressionList.channel, "email")
+            )
+          )
+          .where(eq(contacts.id, row.draft.contactId))
+          .limit(1);
+        if (suppressed !== undefined) {
+          throw new MessageStateError("A suppressed contact message cannot be approved.");
+        }
       }
 
       await transaction.insert(messageApprovals).values({

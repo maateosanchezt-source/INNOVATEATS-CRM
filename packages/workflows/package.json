@@ -24,6 +24,7 @@
     "test:integration": "vitest run tests/integration --root . --config ../../vitest.config.ts --passWithNoTests"
   },
   "dependencies": {
+    "@innovateats/shared": "workspace:*",
     "@temporalio/workflow": "1.20.3"
   },
   "devDependencies": {
