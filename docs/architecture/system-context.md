@@ -28,3 +28,9 @@ The database preserves source snapshots, hashes, evidence links, agent-run input
 Contact extraction consumes only stored inert snapshots. Published addresses and direct routes keep their source document and active evidence IDs. PostgreSQL rejects a contact when the cited evidence, source document, founder, and organization do not form a valid association.
 
 Email validation is layered: syntax, MX availability, and an optional replaceable mailbox-verification provider are separate facts. MX never implies that a mailbox exists. Every verification is append-only, while the contact row stores only the current materialized status.
+
+## Message boundary
+
+The message pipeline accepts a typed strategy brief tied to one actionable email contact and active lead evidence. Deterministic policy selects whether Mateo credentials fit the opportunity, constrains the three-touch sequence, validates factual spans, and scores factuality, specificity, and sales quality.
+
+Strategy briefs, generated drafts, human edits, and approval decisions are separate records. Drafts and briefs are immutable; an edit creates a linear successor. Approval is attached to one latest QA-passed version and never follows later edits. Message generation is gated independently, while scheduling and sending remain outside the Phase 4 boundary.

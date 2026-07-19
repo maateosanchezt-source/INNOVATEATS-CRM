@@ -984,6 +984,289 @@ textarea:focus {
   font-size: 0.78rem;
 }
 
+.messageSection {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.messageBriefForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.messageBriefForm label,
+.messageEditForm label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.messageBriefForm input,
+.messageBriefForm select,
+.messageBriefForm textarea,
+.messageEditForm input,
+.messageEditForm textarea,
+.decisionForm input {
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  letter-spacing: normal;
+}
+
+.messageBriefForm textarea,
+.messageEditForm textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.messageEvidencePicker {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 9px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.messageEvidencePicker legend {
+  padding: 0 7px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.messageEvidencePicker label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.messageEvidencePicker input {
+  width: 17px;
+  min-height: 17px;
+}
+
+.messageEvidencePicker span {
+  display: grid;
+  gap: 3px;
+  color: var(--ink);
+}
+
+.messageEvidencePicker small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+
+.strategySummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.strategySummary article {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper-strong);
+}
+
+.strategySummary span,
+.messageDraftTop span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.strategySummary p {
+  margin: 9px 0 0;
+  line-height: 1.5;
+}
+
+.messageDraftList {
+  display: grid;
+  gap: 16px;
+}
+
+.messageDraftCard {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: white;
+}
+
+.messageDraftTop,
+.qaStrip,
+.decisionForm > div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.messageDraftTop > div {
+  display: grid;
+  gap: 4px;
+}
+
+.approvalBadge {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--paper-strong);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.approvalBadge.approved {
+  background: #e2f4e7;
+  color: #1b6737;
+}
+
+.approvalBadge.rejected {
+  background: #fee8e4;
+  color: #8b2e22;
+}
+
+.qaStrip {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+
+.qaStrip span {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: var(--paper-strong);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.messageEditForm {
+  display: grid;
+  gap: 12px;
+}
+
+.messageEditForm small {
+  color: var(--muted);
+}
+
+.messageEditForm button {
+  justify-self: start;
+}
+
+.messageDiff,
+.evidenceMap {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.messageDiff summary,
+.evidenceMap summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.diffGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.diffGrid > div {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.diffGrid del,
+.diffGrid ins {
+  display: block;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  border-radius: 10px;
+  white-space: pre-wrap;
+  text-decoration: none;
+}
+
+.diffGrid del {
+  background: #fff0ed;
+  color: #7a2d23;
+}
+
+.diffGrid ins {
+  background: #edf8ef;
+  color: #245c31;
+}
+
+.evidenceMap ul {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.evidenceMap li {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--paper-strong);
+}
+
+.evidenceMap li strong {
+  color: var(--green-dark);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.evidenceMap li small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+
+.decisionForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.secondaryButton {
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink);
+}
+
+.decisionRecord {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
 @media (max-width: 800px) {
   .cardGrid {
     grid-template-columns: repeat(2, 1fr);
@@ -1020,7 +1303,8 @@ textarea:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .contactGrid {
+  .contactGrid,
+  .strategySummary {
     grid-template-columns: 1fr;
   }
 
@@ -1070,7 +1354,10 @@ textarea:focus {
 
   .researchCaptureForm,
   .scoreBreakdown,
-  .contactExtractForm {
+  .contactExtractForm,
+  .messageBriefForm,
+  .decisionForm,
+  .diffGrid {
     grid-template-columns: 1fr;
   }
 }

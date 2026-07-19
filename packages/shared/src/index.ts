@@ -61,6 +61,34 @@ export {
 } from "./feature-flags.js";
 export { isAuthorizedEmail, normalizeEmail } from "./identity.js";
 export {
+  approvalStatuses as messageApprovalStatuses,
+  countMessageWords,
+  mateoCredentialKeys,
+  mateoCredentialKeySchema,
+  messageApprovalStatusSchema,
+  messageBriefSchema,
+  messageDraftContentSchema,
+  messageEvidenceKinds,
+  messageEvidenceKindSchema,
+  messageEvidenceMapItemSchema,
+  messageLanguages,
+  messageLanguageSchema,
+  messageQaReviewSchema,
+  messageSequenceSchema,
+  messageSequenceSteps,
+  messageSequenceStepSchema,
+  type MateoCredentialKey,
+  type MessageApprovalStatus,
+  type MessageBrief,
+  type MessageDraftContent,
+  type MessageEvidenceKind,
+  type MessageEvidenceMapItem,
+  type MessageLanguage,
+  type MessageQaReview,
+  type MessageSequence,
+  type MessageSequenceStep
+} from "./messaging.js";
+export {
   approvalStatuses,
   containsRequiredInnovatEatsWebsite,
   evaluateOutboundSafety,

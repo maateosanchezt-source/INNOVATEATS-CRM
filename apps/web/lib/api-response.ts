@@ -6,6 +6,8 @@ import {
   EvidenceNotFoundError,
   InvalidLeadTransitionError,
   LeadNotFoundError,
+  MessageDraftNotFoundError,
+  MessageStateError,
   ResearchStateError
 } from "@innovateats/db";
 import { SecureFetchError } from "@innovateats/integrations";
@@ -40,6 +42,17 @@ export function apiErrorResponse(error: unknown): Response {
 
   if (error instanceof ContactNotFoundError) {
     return Response.json({ error: { code: "not_found", message: error.message } }, { status: 404 });
+  }
+
+  if (error instanceof MessageDraftNotFoundError) {
+    return Response.json({ error: { code: "not_found", message: error.message } }, { status: 404 });
+  }
+
+  if (error instanceof MessageStateError) {
+    return Response.json(
+      { error: { code: "invalid_message_state", message: error.message } },
+      { status: 409 }
+    );
   }
 
   if (error instanceof ContactAssociationError) {

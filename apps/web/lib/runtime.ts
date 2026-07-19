@@ -8,6 +8,7 @@ import {
   createDatabaseClient,
   PostgresContactRepository,
   PostgresCrmRepository,
+  PostgresMessageRepository,
   PostgresResearchRepository,
   PostgresSafetyControlRepository,
   type DatabaseClient
@@ -91,6 +92,10 @@ export function researchRepository(): PostgresResearchRepository {
 
 export function contactRepository(): PostgresContactRepository {
   return new PostgresContactRepository(databaseClient().db);
+}
+
+export function messageRepository(): PostgresMessageRepository {
+  return new PostgresMessageRepository(databaseClient().db);
 }
 
 export function emailVerificationProvider(): DisabledEmailVerificationProvider {
