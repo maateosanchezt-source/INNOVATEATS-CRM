@@ -57,6 +57,19 @@ describe("Gmail integration", () => {
     expect(rendered.match(/https:\/\/innovateats\.com/gu)).toHaveLength(2);
   });
 
+  it("adds policy-required contact, disclosure, and postal details", () => {
+    const rendered = renderOutboundBody("Approved copy.\n\nInnovatEats: https://innovateats.com", {
+      contactEmail: "maateosanchezt@gmail.com",
+      physicalPostalAddress: "123 Example Street, Madrid",
+      advertisementDisclosure: true
+    });
+
+    expect(rendered).toContain("Commercial introduction");
+    expect(rendered).toContain("maateosanchezt@gmail.com");
+    expect(rendered).toContain("123 Example Street, Madrid");
+    expect(rendered).toContain("https://innovateats.com");
+  });
+
   it("blocks header injection", () => {
     expect(() =>
       buildRawGmailMessage({

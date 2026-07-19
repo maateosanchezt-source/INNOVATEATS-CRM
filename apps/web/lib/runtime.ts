@@ -7,6 +7,7 @@ import {
 import {
   createDatabaseClient,
   PostgresContactRepository,
+  PostgresComplianceRepository,
   PostgresCrmRepository,
   PostgresGmailAuthRepository,
   PostgresInboundRepository,
@@ -98,6 +99,10 @@ export function researchRepository(): PostgresResearchRepository {
 
 export function contactRepository(): PostgresContactRepository {
   return new PostgresContactRepository(databaseClient().db);
+}
+
+export function complianceRepository(): PostgresComplianceRepository {
+  return new PostgresComplianceRepository(databaseClient().db);
 }
 
 export function messageRepository(): PostgresMessageRepository {

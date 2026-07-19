@@ -9,6 +9,14 @@ export {
   type SaveContactResult
 } from "./repositories/contact.js";
 export {
+  ComplianceStateError,
+  PostgresComplianceRepository,
+  type CreateComplianceDecisionInput,
+  type CreatedComplianceDecision,
+  type RegionPolicyView,
+  type SocialManualItem
+} from "./repositories/compliance.js";
+export {
   EvidenceNotFoundError,
   InvalidLeadTransitionError,
   LeadNotFoundError,

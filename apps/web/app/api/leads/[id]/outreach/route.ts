@@ -5,10 +5,16 @@ import { scheduleSequenceInputSchema } from "@innovateats/shared";
 import { requireApiActor } from "@/lib/api-auth";
 import { apiErrorResponse } from "@/lib/api-response";
 import { evaluateSequenceSchedulingGate } from "@/lib/send-policy";
-import { environment, outreachRepository, safetyControlService } from "@/lib/runtime";
+import {
+  complianceRepository,
+  environment,
+  outreachRepository,
+  safetyControlService
+} from "@/lib/runtime";
 
 const inputSchema = scheduleSequenceInputSchema.extend({
-  contactId: z.uuid()
+  contactId: z.uuid(),
+  requestedLanguage: z.enum(["en", "es"]).default("en")
 });
 
 export async function POST(
@@ -31,6 +37,42 @@ export async function POST(
         { status: 409 }
       );
     }
+    const compliance = await complianceRepository().createDecision({
+      leadId,
+      contactId: input.contactId,
+      campaignId: input.campaignId,
+      channel: "email",
+      requestedLanguage: input.requestedLanguage,
+      businessPostalAddressConfigured: config.BUSINESS_POSTAL_ADDRESS !== undefined,
+      actorId: actor
+    });
+    if (compliance.result.decision === "block") {
+      return Response.json(
+        {
+          error: {
+            code: "compliance_block",
+            message: compliance.result.reasons.join(" ")
+          },
+          data: { compliance }
+        },
+        { status: 409 }
+      );
+    }
+    if (
+      config.GMAIL_DELIVERY_MODE !== "dry_run" &&
+      !["allow", "approval_required"].includes(compliance.result.decision)
+    ) {
+      return Response.json(
+        {
+          error: {
+            code: "external_delivery_not_permitted",
+            message: compliance.result.reasons.join(" ")
+          },
+          data: { compliance }
+        },
+        { status: 409 }
+      );
+    }
     const result = await outreachRepository().createSequence({
       leadId,
       contactId: input.contactId,
@@ -38,9 +80,10 @@ export async function POST(
       senderId: input.senderId,
       recipientTimezone: input.timezone,
       deliveryMode: config.GMAIL_DELIVERY_MODE,
+      complianceDecisionId: compliance.id,
       actorId: actor
     });
-    return Response.json({ data: result }, { status: 201 });
+    return Response.json({ data: { sequence: result, compliance } }, { status: 201 });
   } catch (error) {
     return apiErrorResponse(error);
   }

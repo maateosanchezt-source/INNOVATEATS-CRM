@@ -1,6 +1,7 @@
 import { ZodError } from "zod";
 
 import {
+  ComplianceStateError,
   ContactAssociationError,
   ContactNotFoundError,
   EvidenceNotFoundError,
@@ -60,6 +61,13 @@ export function apiErrorResponse(error: unknown): Response {
   if (error instanceof OutreachStateError) {
     return Response.json(
       { error: { code: "invalid_outreach_state", message: error.message } },
+      { status: 409 }
+    );
+  }
+
+  if (error instanceof ComplianceStateError) {
+    return Response.json(
+      { error: { code: "invalid_compliance_state", message: error.message } },
       { status: 409 }
     );
   }

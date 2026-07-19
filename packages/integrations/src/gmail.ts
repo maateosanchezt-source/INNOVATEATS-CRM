@@ -262,11 +262,28 @@ export function outboundInternetMessageId(idempotencyKey: string): string {
   return `<${digest}@outreach.innovateats.com>`;
 }
 
-export function renderOutboundBody(approvedBody: string): string {
+export interface OutboundFooterOptions {
+  readonly contactEmail?: string;
+  readonly physicalPostalAddress?: string;
+  readonly advertisementDisclosure?: boolean;
+}
+
+export function renderOutboundBody(
+  approvedBody: string,
+  options: OutboundFooterOptions = {}
+): string {
   if (!approvedBody.includes(INNOVATEATS_WEBSITE)) {
     throw new Error(`Approved body must contain ${INNOVATEATS_WEBSITE}.`);
   }
-  return `${approvedBody.trim()}\n\nMateo Sanchez / InnovatEats\n${INNOVATEATS_WEBSITE}\nIf this is not relevant, reply "no" and I will not contact you again.`;
+  const footer = [
+    "Mateo Sanchez / InnovatEats",
+    ...(options.advertisementDisclosure === true ? ["Commercial introduction"] : []),
+    INNOVATEATS_WEBSITE,
+    ...(options.contactEmail === undefined ? [] : [options.contactEmail]),
+    ...(options.physicalPostalAddress === undefined ? [] : [options.physicalPostalAddress]),
+    'If this is not relevant, reply "no" and I will not contact you again.'
+  ];
+  return `${approvedBody.trim()}\n\n${footer.join("\n")}`;
 }
 
 export class GoogleGmailGateway implements GmailGateway {

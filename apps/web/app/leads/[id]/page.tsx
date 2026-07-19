@@ -11,12 +11,14 @@ import { MessageApprovalWorkspace } from "@/components/message-approval-workspac
 import { OutreachControl } from "@/components/outreach-control";
 import { PipelineControl } from "@/components/pipeline-control";
 import { ResearchCaptureForm } from "@/components/research-capture-form";
+import { SocialManualQueue } from "@/components/social-manual-queue";
 import { evaluateContactGate } from "@/lib/contact-policy";
 import { evaluateMessageGenerationGate } from "@/lib/message-policy";
 import { requirePageActor } from "@/lib/page-auth";
 import { evaluateResearchGate } from "@/lib/research-policy";
 import {
   crmRepository,
+  complianceRepository,
   environment,
   inboundRepository,
   messageRepository,
@@ -66,11 +68,13 @@ export default async function LeadDetailPage({
   let researchEnabled = false;
   let contactEnabled = false;
   let messageEnabled = false;
+  let socialManualEnabled = false;
   const config = environment();
   if (
     config.RESEARCH_ENABLED ||
     config.CONTACT_ENRICHMENT_ENABLED ||
-    config.MESSAGE_GENERATION_ENABLED
+    config.MESSAGE_GENERATION_ENABLED ||
+    config.SOCIAL_MANUAL_QUEUE_ENABLED
   ) {
     try {
       const safety = await safetyControlService().snapshot();
@@ -85,15 +89,21 @@ export default async function LeadDetailPage({
         safety,
         "message_strategy"
       ).allowed;
+      socialManualEnabled =
+        config.SOCIAL_MANUAL_QUEUE_ENABLED &&
+        safety.flags.social_manual_queue_enabled &&
+        !safety.globalKillSwitchActive;
     } catch {
       researchEnabled = false;
       contactEnabled = false;
       messageEnabled = false;
+      socialManualEnabled = false;
     }
   }
   const messageWorkspace = await messageRepository().getWorkspace(lead.id);
   const outreachWorkspace = await outreachRepository().getWorkspace(lead.id);
   const leadReplies = await inboundRepository().listRepliesForLead(lead.id);
+  const socialItems = await complianceRepository().listSocialItems(lead.id);
 
   return (
     <main className="dashboardShell">
@@ -200,7 +210,11 @@ export default async function LeadDetailPage({
           verificationStatus: contact.verificationStatus,
           verificationProvider: contact.verificationProvider,
           confidence: contact.confidence,
-          doNotContact: contact.doNotContact
+          doNotContact: contact.doNotContact,
+          subscriberType: contact.subscriberType,
+          consentStatus: contact.consentStatus,
+          languageProficiency: contact.languageProficiency,
+          complianceReviewedBy: contact.complianceReviewedBy
         }))}
         enabled={contactEnabled}
         evidenceOptions={lead.evidence
@@ -280,6 +294,24 @@ export default async function LeadDetailPage({
             sentAt: outbound.sentAt?.toISOString() ?? null
           }))
         }))}
+      />
+
+      <SocialManualQueue
+        campaigns={outreachWorkspace.campaigns}
+        contacts={lead.contacts.map((contact) => ({
+          id: contact.id,
+          label: `${contact.channelType.replaceAll("_", " ")} · ${contact.value}`,
+          channelType: contact.channelType,
+          directUrl: contact.directUrl
+        }))}
+        enabled={socialManualEnabled}
+        items={socialItems.map((item) => ({
+          ...item,
+          reminderAt: item.reminderAt?.toISOString() ?? null,
+          copiedAt: item.copiedAt?.toISOString() ?? null,
+          markedSentAt: item.markedSentAt?.toISOString() ?? null
+        }))}
+        leadId={lead.id}
       />
 
       {leadReplies[0] !== undefined && (

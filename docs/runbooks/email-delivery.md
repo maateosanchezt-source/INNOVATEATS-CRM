@@ -24,6 +24,11 @@ pilot and explicit human go-live decision. A configuration change alone is insuf
 flags, campaign, sender, approval, contact, suppression, caps and kill switches are rechecked inside
 the claim transaction.
 
+Every external sequence also requires an immutable regional compliance decision bound to the same
+lead, contact and campaign. The exact policy version must still be active and the region enabled at
+claim time. US commercial email additionally requires a real `BUSINESS_POSTAL_ADDRESS`; never enter
+a placeholder. A region switch never overrides the global dry run or explicit production approval.
+
 ## Connect Gmail
 
 1. Configure a Google OAuth web client whose callback exactly matches

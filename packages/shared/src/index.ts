@@ -182,3 +182,37 @@ export {
   type ReplyClassificationName,
   type ReplyRequestedAction
 } from "./reply.js";
+export {
+  complianceDecisionResultSchema,
+  complianceDecisionSchema,
+  complianceDecisions,
+  complianceInputSchema,
+  consentStatusSchema,
+  consentStatuses,
+  evaluateRegionalPolicy,
+  footerRequirementSchema,
+  footerRequirements,
+  languageProficiencies,
+  languageProficiencySchema,
+  outreachChannels,
+  outreachChannelSchema,
+  policySourceSchema,
+  regionalPolicyModes,
+  regionalPolicyModeSchema,
+  regionPolicySchema,
+  resolveRegionalLanguage,
+  subscriberTypes,
+  subscriberTypeSchema,
+  type ComplianceDecisionName,
+  type ComplianceDecisionResult,
+  type ComplianceInput,
+  type ConsentStatus,
+  type FooterRequirement,
+  type LanguageProficiency,
+  type OutreachChannel,
+  type PolicySource,
+  type RegionPolicy,
+  type RegionalPolicyMode,
+  type SubscriberType
+} from "./regional-policy.js";
+export { regionalPolicyByCode, regionalPolicyFixtures } from "./regional-policy-fixtures.js";

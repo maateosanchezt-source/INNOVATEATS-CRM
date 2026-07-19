@@ -2,6 +2,7 @@ export { account, session, user, verification } from "./auth.js";
 export {
   agentRuns,
   campaigns,
+  complianceDecisions,
   contacts,
   contactVerifications,
   evidence,
@@ -20,6 +21,7 @@ export {
   outboundMessages,
   outboxEvents,
   recheckTasks,
+  regionPolicyVersions,
   replyClassificationsTable,
   organizations,
   sourceDocuments,
@@ -27,6 +29,7 @@ export {
   strategyBriefs,
   sendAttempts,
   senders,
+  socialManualQueue,
   sequences,
   suppressionList
 } from "./crm.js";
@@ -43,6 +46,7 @@ import { account, session, user, verification } from "./auth.js";
 import {
   agentRuns,
   campaigns,
+  complianceDecisions,
   contacts,
   contactVerifications,
   evidence,
@@ -61,6 +65,7 @@ import {
   outboundMessages,
   outboxEvents,
   recheckTasks,
+  regionPolicyVersions,
   replyClassificationsTable,
   organizations,
   sourceDocuments,
@@ -68,6 +73,7 @@ import {
   strategyBriefs,
   sendAttempts,
   senders,
+  socialManualQueue,
   sequences,
   suppressionList
 } from "./crm.js";
@@ -85,6 +91,7 @@ export const schema = {
   agentRuns,
   auditLog,
   campaigns,
+  complianceDecisions,
   contacts,
   contactVerifications,
   evidence,
@@ -105,6 +112,7 @@ export const schema = {
   outboundMessages,
   outboxEvents,
   recheckTasks,
+  regionPolicyVersions,
   replyClassificationsTable,
   organizations,
   regions,
@@ -115,6 +123,7 @@ export const schema = {
   strategyBriefs,
   sendAttempts,
   senders,
+  socialManualQueue,
   sequences,
   suppressionList,
   systemSettings,

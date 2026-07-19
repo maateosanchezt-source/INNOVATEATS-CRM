@@ -15,6 +15,10 @@ interface ContactView {
   readonly verificationProvider: string | null;
   readonly confidence: number;
   readonly doNotContact: boolean;
+  readonly subscriberType: string;
+  readonly consentStatus: string;
+  readonly languageProficiency: string;
+  readonly complianceReviewedBy: string | null;
 }
 
 interface EvidenceOption {
@@ -95,6 +99,41 @@ export function ContactIntelligence({
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Email verification failed.");
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function updateCompliance(
+    event: FormEvent<HTMLFormElement>,
+    contactId: string
+  ): Promise<void> {
+    event.preventDefault();
+    setBusyKey(`compliance-${contactId}`);
+    setMessage(null);
+    const form = new FormData(event.currentTarget);
+    try {
+      const response = await fetch(
+        `/api/leads/${leadId}/contacts/${contactId}/compliance-profile`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            subscriberType: form.get("subscriberType"),
+            consentStatus: form.get("consentStatus"),
+            languageProficiency: form.get("languageProficiency"),
+            evidenceNote: form.get("evidenceNote")
+          })
+        }
+      );
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: { message?: string } };
+        throw new Error(payload.error?.message ?? "Compliance profile update failed.");
+      }
+      setMessage("Human-reviewed compliance profile stored with an audit record.");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Compliance profile update failed.");
     } finally {
       setBusyKey(null);
     }
@@ -183,6 +222,52 @@ export function ContactIntelligence({
                     </button>
                   )}
                 </div>
+                <details className="complianceProfile">
+                  <summary>
+                    Compliance profile ·{" "}
+                    {contact.complianceReviewedBy === null ? "unreviewed" : "human reviewed"}
+                  </summary>
+                  <form onSubmit={(event) => void updateCompliance(event, contact.id)}>
+                    <label>
+                      Subscriber type
+                      <select defaultValue={contact.subscriberType} name="subscriberType">
+                        <option value="unknown">Unknown</option>
+                        <option value="corporate">Corporate</option>
+                        <option value="sole_trader">Sole trader</option>
+                        <option value="partnership">Partnership</option>
+                        <option value="individual">Individual</option>
+                      </select>
+                    </label>
+                    <label>
+                      Consent evidence
+                      <select defaultValue={contact.consentStatus} name="consentStatus">
+                        <option value="unknown">Unknown</option>
+                        <option value="none">None</option>
+                        <option value="express">Express</option>
+                        <option value="inferred">Inferred</option>
+                        <option value="prior_relationship">Prior relationship</option>
+                      </select>
+                    </label>
+                    <label>
+                      Language proficiency
+                      <select defaultValue={contact.languageProficiency} name="languageProficiency">
+                        <option value="unknown">Unknown</option>
+                        <option value="high">High</option>
+                        <option value="native">Native</option>
+                      </select>
+                    </label>
+                    <label>
+                      Evidence note
+                      <input
+                        name="evidenceNote"
+                        placeholder="Public source or human review basis"
+                      />
+                    </label>
+                    <button disabled={busyKey !== null} type="submit">
+                      {busyKey === `compliance-${contact.id}` ? "Saving…" : "Save review"}
+                    </button>
+                  </form>
+                </details>
               </article>
             );
           })}

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": "@innovateats/shared regionalPolicyFixtures",
+  "effectiveFrom": "2026-07-19",
+  "defaultSafety": "block",
+  "universal": {
+    "maximumTouches": 3,
+    "requiredWebsite": "https://innovateats.com",
+    "purchasedOrHarvestedLists": "blocked",
+    "stopAfterReply": true,
+    "retentionDays": {
+      "rejectedUncontacted": 90,
+      "contacted": 730,
+      "policySnapshots": 180
+    }
+  },
+  "regions": [
+    {
+      "code": "US",
+      "version": "US-2026-07-19.1",
+      "email": "approval_required",
+      "requires": ["physical_postal_address", "advertisement_disclosure", "easy_opt_out"]
+    },
+    {
+      "code": "UK",
+      "version": "UK-2026-07-19.1",
+      "email": "approval_required",
+      "unknownSubscriber": "block"
+    },
+    {
+      "code": "ES",
+      "version": "ES-2026-07-19.1",
+      "email": "draft_only"
+    },
+    {
+      "code": "CENTRAL_EU",
+      "version": "CENTRAL-EU-2026-07-19.1",
+      "email": "draft_only",
+      "countryAdapterRequired": true
+    },
+    {
+      "code": "AU_NZ",
+      "version": "AU-NZ-2026-07-19.1",
+      "email": "draft_only",
+      "consentEvidenceRequired": true
+    },
+    {
+      "code": "ASIA",
+      "version": "ASIA-2026-07-19.1",
+      "email": "draft_only",
+      "countryAdapterRequired": true
+    }
+  ],
+  "platformChannels": {
+    "linkedin": "manual_only",
+    "instagram": "manual_only",
+    "kickstarter": "manual_only",
+    "indiegogo": "manual_only",
+    "upwork": "manual_only"
+  }
+}

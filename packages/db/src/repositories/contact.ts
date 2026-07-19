@@ -13,8 +13,11 @@ import {
   type ContactChannelType,
   type ContactOrigin,
   type ContactVerificationStatus,
+  type ConsentStatus,
   type EmailVerificationResult,
   type LeadStatus,
+  type LanguageProficiency,
+  type SubscriberType,
   type SourceSnapshot
 } from "@innovateats/shared";
 
@@ -50,6 +53,12 @@ export interface ContactRecord {
   readonly verificationStatus: ContactVerificationStatus;
   readonly verificationProvider: string | null;
   readonly isPersonalData: boolean;
+  readonly subscriberType: SubscriberType;
+  readonly consentStatus: ConsentStatus;
+  readonly languageProficiency: LanguageProficiency;
+  readonly complianceEvidence: Readonly<Record<string, unknown>>;
+  readonly complianceReviewedBy: string | null;
+  readonly complianceReviewedAt: Date | null;
   readonly country: string | null;
   readonly confidence: number;
   readonly doNotContact: boolean;
@@ -105,6 +114,12 @@ function toRecord(row: typeof contacts.$inferSelect): ContactRecord {
     verificationStatus: contactVerificationStatusSchema.parse(row.verificationStatus),
     verificationProvider: row.verificationProvider,
     isPersonalData: row.isPersonalData,
+    subscriberType: row.subscriberType,
+    consentStatus: row.consentStatus,
+    languageProficiency: row.languageProficiency,
+    complianceEvidence: row.complianceEvidence,
+    complianceReviewedBy: row.complianceReviewedBy,
+    complianceReviewedAt: row.complianceReviewedAt,
     country: row.country,
     confidence: row.confidence,
     doNotContact: row.doNotContact,

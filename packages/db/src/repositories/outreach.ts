@@ -3,12 +3,14 @@ import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 
 import {
+  complianceDecisionResultSchema,
   INNOVATEATS_WEBSITE,
   nextPreferredSendWindow,
   outboundIdempotencyKey,
   outboundDeliveryStatusSchema,
   outreachSequenceStatusSchema,
   sequenceWorkflowId,
+  type ComplianceDecisionResult,
   type GmailDeliveryMode,
   type OutboundDeliveryStatus,
   type OutreachSequenceStatus,
@@ -20,6 +22,7 @@ import type { AppDatabase } from "../client.js";
 import {
   auditLog,
   campaigns,
+  complianceDecisions,
   contacts,
   featureFlags,
   gmailCredentials,
@@ -31,6 +34,8 @@ import {
   organizations,
   outboundMessages,
   outboxEvents,
+  regionPolicyVersions,
+  regions,
   sendAttempts,
   senders,
   sequences,
@@ -44,6 +49,7 @@ export interface CreateSequenceInput {
   readonly senderId: string;
   readonly recipientTimezone: string;
   readonly deliveryMode: GmailDeliveryMode;
+  readonly complianceDecisionId: string;
   readonly actorId: string;
   readonly now?: Date;
 }
@@ -108,6 +114,8 @@ export interface RuntimeSendGate {
   readonly sandboxSendApproved: boolean;
   readonly authorizedEmail: string;
   readonly sandboxRecipient: string;
+  readonly businessContactEmail: string;
+  readonly businessPostalAddress: string | undefined;
   readonly globalDailyCap: number;
   readonly externalIntegrationConfigured: boolean;
 }
@@ -128,6 +136,9 @@ export interface ClaimedOutbound {
   readonly references: readonly string[];
   readonly attemptNumber: number;
   readonly decisionTrace: Readonly<Record<string, unknown>>;
+  readonly businessContactEmail: string;
+  readonly physicalPostalAddress: string | null;
+  readonly advertisementDisclosure: boolean;
 }
 
 export type ClaimOutboundResult =
@@ -260,7 +271,11 @@ export class PostgresOutreachRepository {
 
     return this.database.transaction(async (transaction) => {
       const latestDrafts = await transaction
-        .select({ id: messageDrafts.id, step: messageDrafts.sequenceStep })
+        .select({
+          id: messageDrafts.id,
+          step: messageDrafts.sequenceStep,
+          language: messageDrafts.language
+        })
         .from(messageDrafts)
         .innerJoin(
           messageApprovals,
@@ -291,6 +306,42 @@ export class PostgresOutreachRepository {
       ) {
         throw new OutreachStateError("Three latest QA-passed and approved drafts are required.");
       }
+      const [compliance] = await transaction
+        .select({
+          leadId: complianceDecisions.leadId,
+          contactId: complianceDecisions.contactId,
+          campaignId: complianceDecisions.campaignId,
+          channel: complianceDecisions.channel,
+          decision: complianceDecisions.decision,
+          output: complianceDecisions.output
+        })
+        .from(complianceDecisions)
+        .where(eq(complianceDecisions.id, input.complianceDecisionId))
+        .limit(1);
+      if (
+        compliance === undefined ||
+        compliance.leadId !== input.leadId ||
+        compliance.contactId !== input.contactId ||
+        compliance.campaignId !== input.campaignId ||
+        compliance.channel !== "email"
+      ) {
+        throw new OutreachStateError("A matching email compliance decision is required.");
+      }
+      const complianceOutput = complianceDecisionResultSchema.parse(compliance.output);
+      if (compliance.decision === "block") {
+        throw new OutreachStateError(complianceOutput.reasons.join(" "));
+      }
+      if (
+        input.deliveryMode !== "dry_run" &&
+        !["allow", "approval_required"].includes(compliance.decision)
+      ) {
+        throw new OutreachStateError("The regional decision permits only an internal dry run.");
+      }
+      if (latestDrafts.some((draft) => draft.language !== complianceOutput.effectiveLanguage)) {
+        throw new OutreachStateError(
+          `Approved draft language must match policy language ${complianceOutput.effectiveLanguage}.`
+        );
+      }
 
       const [created] = await transaction
         .insert(sequences)
@@ -300,6 +351,7 @@ export class PostgresOutreachRepository {
           contactId: input.contactId,
           campaignId: input.campaignId,
           senderId: input.senderId,
+          complianceDecisionId: input.complianceDecisionId,
           workflowId,
           recipientTimezone: input.recipientTimezone,
           deliveryMode: input.deliveryMode,
@@ -325,6 +377,7 @@ export class PostgresOutreachRepository {
             scheduledBy: input.actorId,
             scheduledAt: now.toISOString(),
             deliveryMode: input.deliveryMode,
+            complianceDecisionId: input.complianceDecisionId,
             requiredWebsite: INNOVATEATS_WEBSITE
           }
         };
@@ -347,6 +400,7 @@ export class PostgresOutreachRepository {
           campaignId: input.campaignId,
           senderId: input.senderId,
           deliveryMode: input.deliveryMode,
+          complianceDecisionId: input.complianceDecisionId,
           scheduledAt: touches.map((touch) => touch.scheduledAt.toISOString())
         }
       });
@@ -591,6 +645,57 @@ export class PostgresOutreachRepository {
       }
 
       let reason = runtimeBlockReason(row.sequence.deliveryMode, gate);
+      let complianceOutput: ComplianceDecisionResult | null = null;
+      if (row.sequence.complianceDecisionId === null) {
+        if (row.sequence.deliveryMode !== "dry_run") {
+          reason = "External delivery requires an immutable compliance decision.";
+        }
+      } else {
+        const [compliance] = await transaction
+          .select({
+            decision: complianceDecisions.decision,
+            channel: complianceDecisions.channel,
+            leadId: complianceDecisions.leadId,
+            contactId: complianceDecisions.contactId,
+            campaignId: complianceDecisions.campaignId,
+            recordedVersion: complianceDecisions.regionPolicyVersion,
+            output: complianceDecisions.output,
+            policyVersion: regionPolicyVersions.version,
+            policyStatus: regionPolicyVersions.status,
+            regionEnabled: regions.enabled
+          })
+          .from(complianceDecisions)
+          .innerJoin(
+            regionPolicyVersions,
+            eq(regionPolicyVersions.id, complianceDecisions.regionPolicyId)
+          )
+          .innerJoin(regions, eq(regions.id, regionPolicyVersions.regionId))
+          .where(eq(complianceDecisions.id, row.sequence.complianceDecisionId))
+          .limit(1);
+        if (
+          compliance === undefined ||
+          compliance.channel !== "email" ||
+          compliance.leadId !== row.sequence.leadId ||
+          compliance.contactId !== row.sequence.contactId ||
+          compliance.campaignId !== row.sequence.campaignId
+        ) {
+          reason = "Compliance decision is missing or does not match this sequence.";
+        } else {
+          complianceOutput = complianceDecisionResultSchema.parse(compliance.output);
+          if (row.draft.language !== complianceOutput.effectiveLanguage) {
+            reason = "Approved draft language no longer matches the compliance decision.";
+          }
+          if (
+            row.sequence.deliveryMode !== "dry_run" &&
+            (!["allow", "approval_required"].includes(compliance.decision) ||
+              compliance.policyStatus !== "active" ||
+              !compliance.regionEnabled ||
+              compliance.recordedVersion !== compliance.policyVersion)
+          ) {
+            reason = "Compliance policy is stale, inactive, disabled, or not approved for sending.";
+          }
+        }
+      }
       const flags = await transaction.select().from(featureFlags);
       const flagMap = new Map(flags.map((flag) => [flag.key, flag.enabled]));
       const activeSwitches = await transaction
@@ -679,6 +784,14 @@ export class PostgresOutreachRepository {
       }
       if (reason === null && !row.draft.body.includes(INNOVATEATS_WEBSITE)) {
         reason = `Approved message is missing ${INNOVATEATS_WEBSITE}.`;
+      }
+      if (
+        reason === null &&
+        row.sequence.deliveryMode !== "dry_run" &&
+        complianceOutput?.footerRequirements.includes("physical_postal_address") === true &&
+        gate.businessPostalAddress === undefined
+      ) {
+        reason = "The active policy requires a configured physical postal address.";
       }
       if (reason === null && row.sequence.status === "paused") {
         reason = "Sequence is paused.";
@@ -810,6 +923,13 @@ export class PostgresOutreachRepository {
           inReplyTo: prior.at(-1)?.internetMessageId ?? null,
           references: prior.map((entry) => entry.internetMessageId),
           attemptNumber,
+          businessContactEmail: gate.businessContactEmail,
+          physicalPostalAddress:
+            complianceOutput?.footerRequirements.includes("physical_postal_address") === true
+              ? (gate.businessPostalAddress ?? null)
+              : null,
+          advertisementDisclosure:
+            complianceOutput?.footerRequirements.includes("advertisement_disclosure") === true,
           decisionTrace: {
             allowed: true,
             checkedAt: now.toISOString(),
@@ -818,6 +938,8 @@ export class PostgresOutreachRepository {
             latestApprovalChecked: true,
             capsChecked: true,
             killSwitchesChecked: true,
+            complianceDecisionId: row.sequence.complianceDecisionId,
+            compliancePolicyVersion: complianceOutput?.policyVersion ?? null,
             recipientRewritten: row.sequence.deliveryMode === "sandbox"
           }
         }

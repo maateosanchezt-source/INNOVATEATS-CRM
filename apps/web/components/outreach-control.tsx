@@ -64,6 +64,7 @@ export function OutreachControl(props: OutreachControlProps) {
   const [campaignId, setCampaignId] = useState(activeCampaigns[0]?.id ?? "");
   const [senderId, setSenderId] = useState(props.senders[0]?.id ?? "");
   const [timezone, setTimezone] = useState("Europe/Madrid");
+  const [requestedLanguage, setRequestedLanguage] = useState<"en" | "es">("en");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -75,15 +76,28 @@ export function OutreachControl(props: OutreachControlProps) {
       const response = await fetch(`/api/leads/${props.leadId}/outreach`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ contactId, campaignId, senderId, timezone })
+        body: JSON.stringify({
+          contactId,
+          campaignId,
+          senderId,
+          timezone,
+          requestedLanguage
+        })
       });
+      const payload = (await response.json()) as {
+        data?: {
+          compliance?: {
+            result?: { decision?: string; reasons?: readonly string[]; effectiveLanguage?: string };
+          };
+        };
+        error?: { message?: string };
+      };
       if (!response.ok) {
-        throw new Error(await responseError(response));
+        throw new Error(payload.error?.message ?? "Scheduling failed.");
       }
+      const policy = payload.data?.compliance?.result;
       setNotice(
-        props.mode === "dry_run"
-          ? "Dry-run sequence scheduled. No email can leave the system."
-          : "Sequence scheduled under the active external-delivery gates."
+        `${props.mode === "dry_run" ? "Dry-run sequence scheduled; no email can leave the system." : "Sequence scheduled under the active external-delivery gates."} Policy: ${policy?.decision ?? "recorded"} · language ${policy?.effectiveLanguage ?? requestedLanguage}.`
       );
       router.refresh();
     } catch (error) {
@@ -202,6 +216,32 @@ export function OutreachControl(props: OutreachControlProps) {
                 onChange={(event) => setTimezone(event.target.value)}
               />
             </label>
+            <label>
+              Draft language
+              <select
+                value={requestedLanguage}
+                onChange={(event) => setRequestedLanguage(event.target.value as "en" | "es")}
+              >
+                <option value="en">English</option>
+                <option value="es">Spanish (requires reviewed proficiency)</option>
+              </select>
+            </label>
+            <p className="safetyNote">
+              Recipient local time now:{" "}
+              {(() => {
+                try {
+                  return new Intl.DateTimeFormat("en-GB", {
+                    weekday: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: timezone
+                  }).format(new Date());
+                } catch {
+                  return "invalid timezone";
+                }
+              })()}{" "}
+              · sends are constrained to Tue–Thu 09:00–11:30 local.
+            </p>
             <button className="primaryButton" disabled={!canSchedule || busy} type="submit">
               {busy ? "Workingâ€¦" : `Schedule ${props.mode.replace("_", " ")}`}
             </button>
