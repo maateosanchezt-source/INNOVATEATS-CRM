@@ -14,7 +14,15 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-import type { IcpDimensionKey, IcpScoreBreakdown, IcpRecommendedAction } from "@innovateats/shared";
+import type {
+  ContactChannelType,
+  ContactOrigin,
+  ContactVerificationStatus,
+  EmailProviderVerdict,
+  IcpDimensionKey,
+  IcpRecommendedAction,
+  IcpScoreBreakdown
+} from "@innovateats/shared";
 
 import { regions } from "./foundations.js";
 
@@ -247,4 +255,73 @@ export const agentRuns = pgTable(
     index("agent_runs_status_index").on(table.status),
     index("agent_runs_created_index").on(table.createdAt)
   ]
+);
+
+export const contacts = pgTable(
+  "contacts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    founderId: uuid("founder_id").references(() => founders.id, { onDelete: "restrict" }),
+    sourceDocumentId: uuid("source_document_id")
+      .notNull()
+      .references(() => sourceDocuments.id, { onDelete: "restrict" }),
+    evidenceId: uuid("evidence_id")
+      .notNull()
+      .references(() => evidence.id, { onDelete: "restrict" }),
+    fullName: text("full_name"),
+    role: text("role"),
+    channelType: text("channel_type").$type<ContactChannelType>().notNull(),
+    value: text("value").notNull(),
+    normalizedValue: text("normalized_value").notNull(),
+    directUrl: text("direct_url").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    origin: text("origin").$type<ContactOrigin>().notNull(),
+    provenance: text("provenance").notNull(),
+    verificationStatus: text("verification_status")
+      .$type<ContactVerificationStatus>()
+      .default("unverified")
+      .notNull(),
+    verificationProvider: text("verification_provider"),
+    isPersonalData: boolean("is_personal_data").default(false).notNull(),
+    corporateSubscriberStatus: text("corporate_subscriber_status").default("unknown").notNull(),
+    country: text("country"),
+    confidence: real("confidence").notNull(),
+    doNotContact: boolean("do_not_contact").default(false).notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (table) => [
+    uniqueIndex("contacts_organization_channel_value_unique").on(
+      table.organizationId,
+      table.channelType,
+      table.normalizedValue
+    ),
+    index("contacts_organization_index").on(table.organizationId),
+    index("contacts_verification_index").on(table.verificationStatus),
+    index("contacts_evidence_index").on(table.evidenceId)
+  ]
+);
+
+export const contactVerifications = pgTable(
+  "contact_verifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "restrict" }),
+    status: text("status").$type<ContactVerificationStatus>().notNull(),
+    provider: text("provider"),
+    syntaxValid: boolean("syntax_valid").notNull(),
+    mxFound: boolean("mx_found").notNull(),
+    providerVerdict: text("provider_verdict").$type<EmailProviderVerdict>().notNull(),
+    reason: text("reason").notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
+    result: jsonb("result_json").$type<Record<string, unknown>>().notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [index("contact_verifications_contact_index").on(table.contactId, table.checkedAt)]
 );

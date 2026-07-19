@@ -4,7 +4,12 @@ import { request as httpRequest, type IncomingHttpHeaders } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { isIP } from "node:net";
 
-import { normalizePublicUrl, sourceSnapshotSchema, type SourceSnapshot } from "@innovateats/shared";
+import {
+  normalizePublicUrl,
+  sourceSnapshotSchema,
+  type PublicDocumentLink,
+  type SourceSnapshot
+} from "@innovateats/shared";
 
 export interface ResolvedAddress {
   readonly address: string;
@@ -337,12 +342,86 @@ function decodeEntities(value: string): string {
   });
 }
 
+function htmlAttribute(tag: string, name: string): string | null {
+  const expression = new RegExp(
+    String.raw`\b${name}\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>` + "`" + String.raw`]+))`,
+    "iu"
+  );
+  const match = tag.match(expression);
+  return match?.[1] ?? match?.[2] ?? match?.[3] ?? null;
+}
+
+function normalizedDocumentLink(
+  rawHref: string,
+  baseUrl: URL,
+  kind: PublicDocumentLink["kind"],
+  label: string
+): PublicDocumentLink | null {
+  const href = decodeEntities(rawHref).trim();
+  if (href.toLowerCase().startsWith("mailto:")) {
+    const address = href.slice("mailto:".length).split("?")[0]?.trim().toLowerCase();
+    return address !== undefined && address !== ""
+      ? { kind: "mailto", href: `mailto:${address}`, label }
+      : null;
+  }
+
+  try {
+    return {
+      kind,
+      href: normalizePublicUrl(new URL(href || baseUrl.toString(), baseUrl).toString()).url,
+      label
+    };
+  } catch {
+    return null;
+  }
+}
+
+function extractPublicLinks(body: string, baseUrl: URL): readonly PublicDocumentLink[] {
+  const links: PublicDocumentLink[] = [];
+  const seen = new Set<string>();
+  const add = (candidate: PublicDocumentLink | null) => {
+    if (
+      candidate === null ||
+      seen.has(`${candidate.kind}:${candidate.href}`) ||
+      links.length >= 200
+    ) {
+      return;
+    }
+    seen.add(`${candidate.kind}:${candidate.href}`);
+    links.push(candidate);
+  };
+
+  for (const match of body.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/giu)) {
+    const attributes = match[1] ?? "";
+    const href = htmlAttribute(attributes, "href");
+    if (href === null) {
+      continue;
+    }
+    const label = decodeEntities((match[2] ?? "").replace(/<[^>]+>/gu, " "))
+      .replace(/\s+/gu, " ")
+      .trim()
+      .slice(0, 500);
+    add(normalizedDocumentLink(href, baseUrl, "anchor", label));
+  }
+
+  for (const match of body.matchAll(/<form\b([^>]*)>/giu)) {
+    const attributes = match[1] ?? "";
+    const action = htmlAttribute(attributes, "action") ?? baseUrl.toString();
+    const label = (htmlAttribute(attributes, "aria-label") ?? "Form").trim().slice(0, 500);
+    add(normalizedDocumentLink(action, baseUrl, "form", label));
+  }
+
+  return links;
+}
+
 function extractHtml(
   body: string,
-  maximumCharacters: number
+  maximumCharacters: number,
+  baseUrl: URL
 ): {
   readonly title: string | null;
   readonly text: string;
+  readonly publicLinks: readonly PublicDocumentLink[];
 } {
   const titleMatch = body.match(/<title\b[^>]*>([\s\S]*?)<\/title>/iu);
   const withoutInactiveContent = body
@@ -360,7 +439,11 @@ function extractHtml(
           .trim()
           .slice(0, 500);
 
-  return { title: title === "" ? null : title, text };
+  return {
+    title: title === "" ? null : title,
+    text,
+    publicLinks: extractPublicLinks(body, baseUrl)
+  };
 }
 
 export interface SecurePublicFetcherOptions {
@@ -443,8 +526,12 @@ export class SecurePublicFetcher {
       const rawBody = new TextDecoder("utf-8", { fatal: false }).decode(response.body);
       const extracted =
         contentType === "text/plain"
-          ? { title: null, text: rawBody.trim().slice(0, this.maxExtractedCharacters) }
-          : extractHtml(rawBody, this.maxExtractedCharacters);
+          ? {
+              title: null,
+              text: rawBody.trim().slice(0, this.maxExtractedCharacters),
+              publicLinks: []
+            }
+          : extractHtml(rawBody, this.maxExtractedCharacters, current);
 
       return sourceSnapshotSchema.parse({
         requestedUrl,
@@ -457,7 +544,8 @@ export class SecurePublicFetcher {
         byteLength: response.body.byteLength,
         redirectCount,
         resolvedAddresses: [...resolvedAddresses],
-        robotsDecision: "allowed"
+        robotsDecision: "allowed",
+        publicLinks: extracted.publicLinks
       });
     }
 

@@ -2,7 +2,7 @@
 
 Internal, single-tenant operating system for evidence-based CPG research, compliant outreach, and high-quality sales handoff.
 
-## Current status: Phase 2
+## Current status: Phase 3
 
 Foundations establish:
 
@@ -34,7 +34,16 @@ Phase 2 adds a guarded research engine:
 - narrowly scoped OpenAI Agents SDK adapters with structured outputs and no state-changing tools;
 - authenticated research, entity-resolution, and scoring endpoints plus score explanations in the lead view.
 
-Research remains disabled by default and requires both configuration and a database feature flag. No real email can be sent by Phase 2.
+Phase 3 adds contact intelligence:
+
+- inert extraction of published `mailto` links, official contact forms, public founder profiles, and platform application routes;
+- exact contact-to-source-to-evidence provenance;
+- database-enforced organization, founder, source-document, and evidence associations;
+- syntax, MX, and optional mailbox-provider verification layers with append-only history;
+- a hard invariant that inferred email patterns never become verified contacts;
+- authenticated extraction and verification controls in the lead view.
+
+Research and contact enrichment remain disabled by default and each requires both configuration and a database feature flag. No real email can be sent by Phase 3.
 
 ## Prerequisites
 
@@ -87,3 +96,4 @@ pnpm db:migrate:check
 Docker smoke verification is documented in `docs/testing/phase-0-verification.md`.
 CRM verification is documented in `docs/testing/phase-1-verification.md`.
 Research-engine verification is documented in `docs/testing/phase-2-verification.md`.
+Contact-engine verification is documented in `docs/testing/phase-3-verification.md`.

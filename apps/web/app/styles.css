@@ -882,6 +882,108 @@ textarea:focus {
   color: var(--muted);
 }
 
+.contactSection {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.contactExtractForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin: 18px 0;
+}
+
+.contactExtractForm label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.contactExtractForm select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+  color: var(--ink);
+}
+
+.contactGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.contactCard {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: white;
+}
+
+.contactCardTop,
+.contactActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.contactCard > a {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.contactCard p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.contactCard small {
+  color: var(--muted);
+}
+
+.contactChannel,
+.verificationBadge {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: var(--paper-strong);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.verificationBadge.published_verified,
+.verificationBadge.provider_verified {
+  background: #e2f4e7;
+  color: #1b6737;
+}
+
+.verificationBadge.invalid,
+.verificationBadge.risky {
+  background: #fee8e4;
+  color: #8b2e22;
+}
+
+.contactActions button {
+  padding: 8px 10px;
+  font-size: 0.78rem;
+}
+
 @media (max-width: 800px) {
   .cardGrid {
     grid-template-columns: repeat(2, 1fr);
@@ -916,6 +1018,10 @@ textarea:focus {
 
   .scoreBreakdown {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .contactGrid {
+    grid-template-columns: 1fr;
   }
 
   .filterBar {
@@ -963,7 +1069,8 @@ textarea:focus {
   }
 
   .researchCaptureForm,
-  .scoreBreakdown {
+  .scoreBreakdown,
+  .contactExtractForm {
     grid-template-columns: 1fr;
   }
 }

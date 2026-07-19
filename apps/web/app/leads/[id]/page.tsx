@@ -5,9 +5,11 @@ import { z } from "zod";
 import { icpDimensionKeys, type IcpDimensionKey } from "@innovateats/shared";
 
 import { AppHeader } from "@/components/app-header";
+import { ContactIntelligence } from "@/components/contact-intelligence";
 import { EvidenceManager } from "@/components/evidence-manager";
 import { PipelineControl } from "@/components/pipeline-control";
 import { ResearchCaptureForm } from "@/components/research-capture-form";
+import { evaluateContactGate } from "@/lib/contact-policy";
 import { requirePageActor } from "@/lib/page-auth";
 import { evaluateResearchGate } from "@/lib/research-policy";
 import { crmRepository, environment, safetyControlService } from "@/lib/runtime";
@@ -52,17 +54,20 @@ export default async function LeadDetailPage({
   }
 
   let researchEnabled = false;
+  let contactEnabled = false;
   const config = environment();
-  if (config.RESEARCH_ENABLED) {
+  if (config.RESEARCH_ENABLED || config.CONTACT_ENRICHMENT_ENABLED) {
     try {
-      const gate = evaluateResearchGate(
-        true,
-        await safetyControlService().snapshot(),
+      const safety = await safetyControlService().snapshot();
+      researchEnabled = evaluateResearchGate(
+        config.RESEARCH_ENABLED,
+        safety,
         "secure_fetch"
-      );
-      researchEnabled = gate.allowed;
+      ).allowed;
+      contactEnabled = evaluateContactGate(config.CONTACT_ENRICHMENT_ENABLED, safety).allowed;
     } catch {
       researchEnabled = false;
+      contactEnabled = false;
     }
   }
 
@@ -158,6 +163,29 @@ export default async function LeadDetailPage({
           )}
         </article>
       </section>
+
+      <ContactIntelligence
+        contacts={lead.contacts.map((contact) => ({
+          id: contact.id,
+          channelType: contact.channelType,
+          value: contact.value,
+          directUrl: contact.directUrl,
+          sourceUrl: contact.sourceUrl,
+          provenance: contact.provenance,
+          origin: contact.origin,
+          verificationStatus: contact.verificationStatus,
+          verificationProvider: contact.verificationProvider,
+          confidence: contact.confidence,
+          doNotContact: contact.doNotContact
+        }))}
+        enabled={contactEnabled}
+        evidenceOptions={lead.evidence
+          .filter(
+            (record) => record.factType === "source_snapshot" && record.sourceDocumentId !== null
+          )
+          .map((record) => ({ id: record.id, sourceUrl: record.sourceUrl }))}
+        leadId={lead.id}
+      />
 
       {lead.latestScore !== null && (
         <section className="scoreSection">

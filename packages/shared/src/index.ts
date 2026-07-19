@@ -6,6 +6,30 @@ export {
   type OperationMode
 } from "./constants.js";
 export {
+  contactCandidateSchema,
+  contactChannelTypes,
+  contactChannelTypeSchema,
+  contactIsActionable,
+  contactOrigins,
+  contactOriginSchema,
+  contactResearchOutputSchema,
+  contactVerificationStatuses,
+  contactVerificationStatusSchema,
+  emailProviderVerdicts,
+  emailProviderVerdictSchema,
+  emailVerificationResultSchema,
+  normalizeContactValue,
+  publicDocumentLinkSchema,
+  type ContactCandidate,
+  type ContactChannelType,
+  type ContactOrigin,
+  type ContactResearchOutput,
+  type ContactVerificationStatus,
+  type EmailProviderVerdict,
+  type EmailVerificationResult,
+  type PublicDocumentLink
+} from "./contact.js";
+export {
   allowedTransitionsFrom,
   canTransitionLead,
   evidenceInputSchema,

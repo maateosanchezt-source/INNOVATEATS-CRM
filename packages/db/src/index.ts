@@ -1,6 +1,14 @@
 export { createDatabaseClient, type AppDatabase, type DatabaseClient } from "./client.js";
 export { applyMigrations, readMigrationFiles, type MigrationFile } from "./migrations.js";
 export {
+  ContactAssociationError,
+  ContactNotFoundError,
+  PostgresContactRepository,
+  type ContactExtractionSource,
+  type ContactRecord,
+  type SaveContactResult
+} from "./repositories/contact.js";
+export {
   EvidenceNotFoundError,
   InvalidLeadTransitionError,
   LeadNotFoundError,

@@ -2,6 +2,8 @@ import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
 
 import {
   canTransitionLead,
+  contactOriginSchema,
+  contactVerificationStatusSchema,
   icpScoreResultSchema,
   leadStatusSchema,
   normalizePublicUrl,
@@ -14,6 +16,7 @@ import {
 import type { AppDatabase } from "../client.js";
 import {
   auditLog,
+  contacts,
   evidence,
   founders,
   leads,
@@ -25,6 +28,7 @@ import {
   sources
 } from "../schema/index.js";
 import type { FounderRecord, LeadScoreRecord } from "./research.js";
+import type { ContactRecord } from "./contact.js";
 
 export interface LeadListFilters {
   readonly status?: LeadStatus;
@@ -49,6 +53,7 @@ export interface LeadListItem {
 
 export interface EvidenceRecord {
   readonly id: string;
+  readonly sourceDocumentId: string | null;
   readonly factType: string;
   readonly claim: string;
   readonly quoteOrSummary: string;
@@ -78,6 +83,7 @@ export interface LeadDetail extends LeadListItem {
   readonly hardExclusion: boolean;
   readonly exclusionReason: string | null;
   readonly evidence: readonly EvidenceRecord[];
+  readonly contacts: readonly ContactRecord[];
   readonly founders: readonly FounderRecord[];
   readonly history: readonly LeadHistoryRecord[];
   readonly latestScore: LeadScoreRecord | null;
@@ -200,10 +206,11 @@ export class PostgresCrmRepository {
       return null;
     }
 
-    const [evidenceRows, founderRows, historyRows, scoreRows] = await Promise.all([
+    const [evidenceRows, contactRows, founderRows, historyRows, scoreRows] = await Promise.all([
       this.database
         .select({
           id: evidence.id,
+          sourceDocumentId: evidence.sourceDocumentId,
           factType: evidence.factType,
           claim: evidence.claim,
           quoteOrSummary: evidence.quoteOrSummary,
@@ -218,6 +225,11 @@ export class PostgresCrmRepository {
         .from(evidence)
         .where(and(eq(evidence.leadId, leadId), eq(evidence.state, "active")))
         .orderBy(desc(evidence.observedAt), desc(evidence.createdAt)),
+      this.database
+        .select()
+        .from(contacts)
+        .where(eq(contacts.organizationId, row.organizationId))
+        .orderBy(desc(contacts.confidence), contacts.channelType, contacts.normalizedValue),
       this.database
         .select({
           id: founders.id,
@@ -269,6 +281,11 @@ export class PostgresCrmRepository {
       status: leadStatusSchema.parse(row.status),
       evidenceCount: evidenceRows.length,
       evidence: evidenceRows,
+      contacts: contactRows.map((contact) => ({
+        ...contact,
+        origin: contactOriginSchema.parse(contact.origin),
+        verificationStatus: contactVerificationStatusSchema.parse(contact.verificationStatus)
+      })),
       founders: founderRows,
       history: historyRows.map((history) => ({
         ...history,

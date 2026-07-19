@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { leadStageSchema } from "./crm.js";
+import { publicDocumentLinkSchema } from "./contact.js";
 
 export const researchRegionCodes = ["US", "UK", "ES", "CENTRAL_EU", "AU_NZ", "ASIA"] as const;
 export const researchRegionCodeSchema = z.enum(researchRegionCodes);
@@ -230,6 +231,7 @@ export const sourceSnapshotSchema = z.object({
   byteLength: z.number().int().nonnegative(),
   redirectCount: z.number().int().min(0).max(5),
   resolvedAddresses: z.array(z.string().trim().min(1).max(100)).min(1).max(20),
-  robotsDecision: z.literal("allowed")
+  robotsDecision: z.literal("allowed"),
+  publicLinks: z.array(publicDocumentLinkSchema).max(200).default([])
 });
 export type SourceSnapshot = z.infer<typeof sourceSnapshotSchema>;
