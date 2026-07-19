@@ -13,11 +13,17 @@
     "build": "tsc -p tsconfig.json",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
-    "lint": "eslint src",
+    "lint": "eslint src tests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --root . --config ../../vitest.config.ts --passWithNoTests",
     "test:unit": "vitest run tests/unit --root . --config ../../vitest.config.ts --passWithNoTests",
     "test:integration": "vitest run tests/integration --root . --config ../../vitest.config.ts --passWithNoTests"
+  },
+  "dependencies": {
+    "@innovateats/integrations": "workspace:*",
+    "@innovateats/shared": "workspace:*",
+    "@openai/agents": "0.13.5",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "typescript": "5.9.3",

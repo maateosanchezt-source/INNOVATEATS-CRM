@@ -4,6 +4,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   real,
   text,
@@ -11,6 +12,9 @@ import {
   uniqueIndex,
   uuid
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+
+import type { IcpDimensionKey, IcpScoreBreakdown, IcpRecommendedAction } from "@innovateats/shared";
 
 import { regions } from "./foundations.js";
 
@@ -53,7 +57,12 @@ export const sourceDocuments = pgTable(
     createdAt: createdAt()
   },
   (table) => [
-    uniqueIndex("source_documents_canonical_url_unique").on(table.canonicalUrl),
+    uniqueIndex("source_documents_manual_canonical_unique")
+      .on(table.canonicalUrl)
+      .where(sql`${table.contentHash} IS NULL`),
+    uniqueIndex("source_documents_snapshot_unique")
+      .on(table.canonicalUrl, table.contentHash)
+      .where(sql`${table.contentHash} IS NOT NULL`),
     index("source_documents_source_index").on(table.sourceId)
   ]
 );
@@ -154,4 +163,88 @@ export const leadStatusHistory = pgTable(
     createdAt: createdAt()
   },
   (table) => [index("lead_status_history_lead_index").on(table.leadId, table.createdAt)]
+);
+
+export const founders = pgTable(
+  "founders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    name: text("name").notNull(),
+    normalizedName: text("normalized_name").notNull(),
+    role: text("role").notNull(),
+    publicProfileUrls: jsonb("public_profile_urls_json")
+      .$type<readonly string[]>()
+      .default([])
+      .notNull(),
+    confidence: real("confidence").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (table) => [
+    uniqueIndex("founders_organization_name_unique").on(table.organizationId, table.normalizedName),
+    index("founders_organization_index").on(table.organizationId)
+  ]
+);
+
+export const leadScores = pgTable(
+  "lead_scores",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "restrict" }),
+    rubricVersion: text("rubric_version").notNull(),
+    breakdown: jsonb("breakdown_json").$type<IcpScoreBreakdown>().notNull(),
+    explanations: jsonb("explanations_json")
+      .$type<Readonly<Record<IcpDimensionKey, string>>>()
+      .notNull(),
+    total: integer("total").notNull(),
+    confidence: real("confidence").notNull(),
+    evidenceIds: jsonb("evidence_ids_json").$type<readonly string[]>().notNull(),
+    missingInformation: jsonb("missing_information_json")
+      .$type<readonly string[]>()
+      .default([])
+      .notNull(),
+    hardExclusion: boolean("hard_exclusion").default(false).notNull(),
+    exclusionReason: text("exclusion_reason"),
+    recommendedAction: text("recommended_action").$type<IcpRecommendedAction>().notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    index("lead_scores_lead_created_index").on(table.leadId, table.createdAt),
+    index("lead_scores_total_index").on(table.total)
+  ]
+);
+
+export const agentRuns = pgTable(
+  "agent_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    agentName: text("agent_name").notNull(),
+    promptVersion: text("prompt_version").notNull(),
+    model: text("model").notNull(),
+    inputHash: text("input_hash").notNull(),
+    output: jsonb("output_json").$type<Record<string, unknown> | null>(),
+    traceId: text("trace_id"),
+    tokensIn: integer("tokens_in").default(0).notNull(),
+    tokensOut: integer("tokens_out").default(0).notNull(),
+    costUsd: numeric("cost_usd", { precision: 12, scale: 6 }).default("0").notNull(),
+    status: text("status").default("running").notNull(),
+    error: text("error"),
+    createdAt: createdAt(),
+    completedAt: timestamp("completed_at", { withTimezone: true })
+  },
+  (table) => [
+    uniqueIndex("agent_runs_idempotency_unique").on(
+      table.agentName,
+      table.promptVersion,
+      table.inputHash
+    ),
+    index("agent_runs_status_index").on(table.status),
+    index("agent_runs_created_index").on(table.createdAt)
+  ]
 );

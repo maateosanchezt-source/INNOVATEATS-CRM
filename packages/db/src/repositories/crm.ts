@@ -2,6 +2,7 @@ import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
 
 import {
   canTransitionLead,
+  icpScoreResultSchema,
   leadStatusSchema,
   normalizePublicUrl,
   type EvidenceInput,
@@ -14,13 +15,16 @@ import type { AppDatabase } from "../client.js";
 import {
   auditLog,
   evidence,
+  founders,
   leads,
+  leadScores,
   leadStatusHistory,
   organizations,
   regions,
   sourceDocuments,
   sources
 } from "../schema/index.js";
+import type { FounderRecord, LeadScoreRecord } from "./research.js";
 
 export interface LeadListFilters {
   readonly status?: LeadStatus;
@@ -67,13 +71,16 @@ export interface LeadHistoryRecord {
 }
 
 export interface LeadDetail extends LeadListItem {
+  readonly organizationId: string;
   readonly canonicalDomain: string;
   readonly currentOwner: string | null;
   readonly scoreConfidence: number;
   readonly hardExclusion: boolean;
   readonly exclusionReason: string | null;
   readonly evidence: readonly EvidenceRecord[];
+  readonly founders: readonly FounderRecord[];
   readonly history: readonly LeadHistoryRecord[];
+  readonly latestScore: LeadScoreRecord | null;
 }
 
 export interface ManualIngestResult {
@@ -166,6 +173,7 @@ export class PostgresCrmRepository {
     const [row] = await this.database
       .select({
         id: leads.id,
+        organizationId: organizations.id,
         brandName: organizations.displayName,
         productSummary: organizations.productSummary,
         canonicalDomain: organizations.canonicalDomain,
@@ -192,7 +200,7 @@ export class PostgresCrmRepository {
       return null;
     }
 
-    const [evidenceRows, historyRows] = await Promise.all([
+    const [evidenceRows, founderRows, historyRows, scoreRows] = await Promise.all([
       this.database
         .select({
           id: evidence.id,
@@ -211,22 +219,63 @@ export class PostgresCrmRepository {
         .where(and(eq(evidence.leadId, leadId), eq(evidence.state, "active")))
         .orderBy(desc(evidence.observedAt), desc(evidence.createdAt)),
       this.database
+        .select({
+          id: founders.id,
+          name: founders.name,
+          role: founders.role,
+          publicProfileUrls: founders.publicProfileUrls,
+          confidence: founders.confidence
+        })
+        .from(founders)
+        .where(eq(founders.organizationId, row.organizationId))
+        .orderBy(desc(founders.confidence), asc(founders.name)),
+      this.database
         .select()
         .from(leadStatusHistory)
         .where(eq(leadStatusHistory.leadId, leadId))
-        .orderBy(desc(leadStatusHistory.createdAt))
+        .orderBy(desc(leadStatusHistory.createdAt)),
+      this.database
+        .select()
+        .from(leadScores)
+        .where(eq(leadScores.leadId, leadId))
+        .orderBy(desc(leadScores.createdAt))
+        .limit(1)
     ]);
+
+    const latestScoreRow = scoreRows[0];
+    const latestScore =
+      latestScoreRow === undefined
+        ? null
+        : {
+            id: latestScoreRow.id,
+            ...icpScoreResultSchema.parse({
+              rubricVersion: latestScoreRow.rubricVersion,
+              breakdown: latestScoreRow.breakdown,
+              explanations: latestScoreRow.explanations,
+              total: latestScoreRow.total,
+              confidence: latestScoreRow.confidence,
+              hardExclusion: latestScoreRow.hardExclusion,
+              exclusionReason: latestScoreRow.exclusionReason,
+              missingInformation: latestScoreRow.missingInformation,
+              evidenceIds: latestScoreRow.evidenceIds,
+              recommendedAction: latestScoreRow.recommendedAction
+            }),
+            createdBy: latestScoreRow.createdBy,
+            createdAt: latestScoreRow.createdAt
+          };
 
     return {
       ...row,
       status: leadStatusSchema.parse(row.status),
       evidenceCount: evidenceRows.length,
       evidence: evidenceRows,
+      founders: founderRows,
       history: historyRows.map((history) => ({
         ...history,
         fromStatus: history.fromStatus === null ? null : leadStatusSchema.parse(history.fromStatus),
         toStatus: leadStatusSchema.parse(history.toStatus)
-      }))
+      })),
+      latestScore
     };
   }
 
@@ -266,17 +315,25 @@ export class PostgresCrmRepository {
           trustLevel: "user_provided",
           metadata: { submittedBy: actorId }
         })
-        .onConflictDoUpdate({
-          target: sourceDocuments.canonicalUrl,
-          set: {
-            url: normalizedUrl.url,
-            title: input.brandName,
-            metadata: { submittedBy: actorId }
-          }
-        })
+        .onConflictDoNothing()
         .returning({ id: sourceDocuments.id });
 
-      if (document === undefined) {
+      const resolvedDocument =
+        document ??
+        (
+          await transaction
+            .select({ id: sourceDocuments.id })
+            .from(sourceDocuments)
+            .where(
+              and(
+                eq(sourceDocuments.canonicalUrl, normalizedUrl.url),
+                sql`${sourceDocuments.contentHash} IS NULL`
+              )
+            )
+            .limit(1)
+        )[0];
+
+      if (resolvedDocument === undefined) {
         throw new Error("Source document could not be resolved.");
       }
 
@@ -347,7 +404,7 @@ export class PostgresCrmRepository {
       if (insertedLead !== undefined) {
         await transaction.insert(evidence).values({
           leadId: lead.id,
-          sourceDocumentId: document.id,
+          sourceDocumentId: resolvedDocument.id,
           factType: "manual_discovery",
           claim: input.discoverySignal ?? "Manual URL submitted for research.",
           quoteOrSummary:

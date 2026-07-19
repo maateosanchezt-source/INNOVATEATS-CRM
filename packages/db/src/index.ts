@@ -13,6 +13,17 @@ export {
   type ManualIngestResult
 } from "./repositories/crm.js";
 export {
+  PostgresResearchRepository,
+  ResearchStateError,
+  type AgentRunCompletion,
+  type AgentRunRecord,
+  type AgentRunStartInput,
+  type EntityResolutionResult,
+  type FounderRecord,
+  type LeadScoreRecord,
+  type SnapshotRecordResult
+} from "./repositories/research.js";
+export {
   PostgresSafetyControlRepository,
   type AuditActor
 } from "./repositories/safety-controls.js";

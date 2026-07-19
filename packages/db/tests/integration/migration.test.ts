@@ -17,17 +17,17 @@ async function applyAllMigrations(database: PGlite): Promise<void> {
   }
 }
 
-describe("foundation migration", () => {
+describe("database migrations", () => {
   let database: PGlite;
 
   beforeEach(async () => {
     database = new PGlite();
     await applyAllMigrations(database);
-  });
+  }, 30_000);
 
   afterEach(async () => {
     await database.close();
-  });
+  }, 30_000);
 
   it("creates auth and safety tables", async () => {
     const result = await database.query<{ table_name: string }>(`
@@ -42,10 +42,13 @@ describe("foundation migration", () => {
           'feature_flags',
           'kill_switches',
           'audit_log',
+          'agent_runs',
           'sources',
           'source_documents',
           'organizations',
+          'founders',
           'leads',
+          'lead_scores',
           'evidence',
           'lead_status_history'
         )
@@ -54,10 +57,13 @@ describe("foundation migration", () => {
 
     expect(result.rows.map((row) => row.table_name)).toEqual([
       "account",
+      "agent_runs",
       "audit_log",
       "evidence",
       "feature_flags",
+      "founders",
       "kill_switches",
+      "lead_scores",
       "lead_status_history",
       "leads",
       "organizations",
@@ -220,5 +226,75 @@ describe("foundation migration", () => {
         WHERE id = '40000000-0000-4000-8000-000000000098'
       `)
     ).resolves.not.toThrow();
+  });
+
+  it("makes scored explanations append-only and validates agent run accounting", async () => {
+    await database.exec(`
+      INSERT INTO organizations (
+        id, normalized_name, display_name, canonical_domain, country, stage
+      ) VALUES (
+        '10000000-0000-4000-8000-000000000097',
+        'score fixture',
+        'Score Fixture',
+        'score-fixture.example.test.invalid',
+        'Spain',
+        'prelaunch'
+      );
+
+      INSERT INTO leads (
+        id, organization_id, status, icp_score
+      ) VALUES (
+        '20000000-0000-4000-8000-000000000097',
+        '10000000-0000-4000-8000-000000000097',
+        'researched',
+        0
+      );
+
+      INSERT INTO lead_scores (
+        id,
+        lead_id,
+        rubric_version,
+        breakdown_json,
+        explanations_json,
+        total,
+        confidence,
+        evidence_ids_json,
+        missing_information_json,
+        hard_exclusion,
+        recommended_action,
+        created_by
+      ) VALUES (
+        '60000000-0000-4000-8000-000000000097',
+        '20000000-0000-4000-8000-000000000097',
+        'icp-v1',
+        '{"productCategory":15}',
+        '{"productCategory":"One hero product"}',
+        85,
+        0.8,
+        '["evidence-1"]',
+        '[]',
+        false,
+        'advance',
+        'test'
+      );
+    `);
+
+    await expect(
+      database.exec(`
+        UPDATE lead_scores
+        SET total = 100
+        WHERE id = '60000000-0000-4000-8000-000000000097'
+      `)
+    ).rejects.toThrow(/append-only/);
+
+    await expect(
+      database.exec(`
+        INSERT INTO agent_runs (
+          agent_name, prompt_version, model, input_hash, tokens_in
+        ) VALUES (
+          'fixture', 'v1', 'fixture-model', 'not-a-hash', -1
+        )
+      `)
+    ).rejects.toThrow();
   });
 });

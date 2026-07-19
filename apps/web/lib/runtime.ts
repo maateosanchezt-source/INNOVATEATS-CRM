@@ -7,10 +7,12 @@ import {
 import {
   createDatabaseClient,
   PostgresCrmRepository,
+  PostgresResearchRepository,
   PostgresSafetyControlRepository,
   type DatabaseClient
 } from "@innovateats/db";
 import { SafetyControlService } from "@innovateats/feature-flags";
+import { SecurePublicFetcher } from "@innovateats/integrations";
 
 const localDevelopmentSecret = "innovateats-local-development-secret-do-not-use-in-production";
 
@@ -76,4 +78,12 @@ export function safetyControlService(): SafetyControlService {
 
 export function crmRepository(): PostgresCrmRepository {
   return new PostgresCrmRepository(databaseClient().db);
+}
+
+export function researchRepository(): PostgresResearchRepository {
+  return new PostgresResearchRepository(databaseClient().db);
+}
+
+export function securePublicFetcher(): SecurePublicFetcher {
+  return new SecurePublicFetcher();
 }

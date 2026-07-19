@@ -13,13 +13,17 @@
     "build": "tsc -p tsconfig.json",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
-    "lint": "eslint src",
+    "lint": "eslint src tests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --root . --config ../../vitest.config.ts --passWithNoTests",
     "test:unit": "vitest run tests/unit --root . --config ../../vitest.config.ts --passWithNoTests",
     "test:integration": "vitest run tests/integration --root . --config ../../vitest.config.ts --passWithNoTests"
   },
+  "dependencies": {
+    "@innovateats/shared": "workspace:*"
+  },
   "devDependencies": {
+    "@types/node": "26.1.1",
     "typescript": "5.9.3",
     "vitest": "4.1.10"
   }
