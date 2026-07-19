@@ -29,15 +29,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="dashboardShell">
-      <header className="topbar">
-        <div>
-          <Link className="wordmark" href="/">
-            InnovatEats
-          </Link>
-          <span className="productName">Outreach OS</span>
-        </div>
-        <div className="identityBadge">{session.user.email}</div>
-      </header>
+      <AppHeader actor={session.user.email} />
 
       <section className={`statusBanner ${model.status}`}>{model.banner}</section>
 
@@ -67,6 +59,15 @@ export default async function DashboardPage() {
         </div>
         <a href="https://innovateats.com">https://innovateats.com</a>
       </section>
+      <section className="foundationPanel">
+        <div>
+          <p className="eyebrow">CRM CORE</p>
+          <h2>Manual research pipeline</h2>
+          <p>Ingest public URLs, curate evidence, and move leads through audited states.</p>
+        </div>
+        <Link href="/leads">Open lead inbox →</Link>
+      </section>
     </main>
   );
 }
+import { AppHeader } from "@/components/app-header";
