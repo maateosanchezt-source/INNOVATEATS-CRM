@@ -6,13 +6,16 @@ import {
 } from "@innovateats/config";
 import {
   createDatabaseClient,
+  PostgresDataGovernanceRepository,
   PostgresContactRepository,
   PostgresComplianceRepository,
   PostgresCrmRepository,
   PostgresGmailAuthRepository,
   PostgresInboundRepository,
   PostgresMessageRepository,
+  PostgresMetricsRepository,
   PostgresOutreachRepository,
+  PostgresReadinessRepository,
   PostgresResearchRepository,
   PostgresSafetyControlRepository,
   type DatabaseClient
@@ -119,6 +122,18 @@ export function gmailAuthRepository(): PostgresGmailAuthRepository {
 
 export function inboundRepository(): PostgresInboundRepository {
   return new PostgresInboundRepository(databaseClient().db);
+}
+
+export function metricsRepository(): PostgresMetricsRepository {
+  return new PostgresMetricsRepository(databaseClient().db);
+}
+
+export function readinessRepository(): PostgresReadinessRepository {
+  return new PostgresReadinessRepository(databaseClient().db);
+}
+
+export function dataGovernanceRepository(): PostgresDataGovernanceRepository {
+  return new PostgresDataGovernanceRepository(databaseClient().db);
 }
 
 export function gmailOAuth(): GoogleGmailOAuth {

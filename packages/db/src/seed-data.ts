@@ -15,6 +15,7 @@ import {
   leadScores,
   leadStatusHistory,
   organizations,
+  promptVersions,
   regions,
   regionPolicyVersions,
   senders,
@@ -41,6 +42,59 @@ const regionSeeds = [
   ["CENTRAL_EU", "Central Europe", "en", "draft_only"],
   ["AU_NZ", "Australia and New Zealand", "en", "draft_only"],
   ["ASIA", "Asia (country adapter required)", "en", "draft_only"]
+] as const;
+
+const promptSeeds = [
+  {
+    agentName: "research",
+    version: "research-v1",
+    configuration: {
+      task: "public-source research",
+      modelRoute: "OPENAI_RESEARCH_MODEL",
+      inputTrust: "untrusted_evidence_only",
+      outputContract: "research-agent-v1"
+    }
+  },
+  {
+    agentName: "strategy",
+    version: "strategy-v1",
+    configuration: {
+      task: "evidence-backed diagnosis",
+      modelRoute: "OPENAI_STRATEGY_MODEL",
+      inputTrust: "curated_evidence_only",
+      outputContract: "strategy-brief-v1"
+    }
+  },
+  {
+    agentName: "copy",
+    version: "copy-v1",
+    configuration: {
+      task: "three-touch message generation",
+      modelRoute: "OPENAI_COPY_MODEL",
+      mandatoryWebsite: "https://innovateats.com",
+      outputContract: "message-sequence-v1"
+    }
+  },
+  {
+    agentName: "qa",
+    version: "qa-v1",
+    configuration: {
+      task: "factuality and sales-quality grading",
+      modelRoute: "OPENAI_QA_MODEL",
+      evidenceMappingRequired: true,
+      outputContract: "message-qa-v1"
+    }
+  },
+  {
+    agentName: "classifier",
+    version: "classifier-v1",
+    configuration: {
+      task: "inbound reply classification",
+      modelRoute: "OPENAI_CLASSIFIER_MODEL",
+      inputTrust: "inert_untrusted_text",
+      outputContract: "reply-classification-v1"
+    }
+  }
 ] as const;
 
 const crmSeed = [
@@ -217,6 +271,23 @@ export async function seedFoundations(database: AppDatabase): Promise<void> {
           approvedBy: "phase-7-policy-pack",
           approvedAt: new Date("2026-07-19T00:00:00.000Z"),
           createdBy: "phase-7-policy-pack"
+        })
+        .onConflictDoNothing();
+    }
+
+    for (const prompt of promptSeeds) {
+      const serialized = JSON.stringify(prompt.configuration);
+      await transaction
+        .insert(promptVersions)
+        .values({
+          agentName: prompt.agentName,
+          version: prompt.version,
+          configuration: prompt.configuration,
+          contentHash: createHash("sha256").update(serialized).digest("hex"),
+          status: "active",
+          approvedBy: "phase-8-prompt-baseline",
+          approvedAt: new Date("2026-07-19T00:00:00.000Z"),
+          createdBy: "phase-8-prompt-baseline"
         })
         .onConflictDoNothing();
     }

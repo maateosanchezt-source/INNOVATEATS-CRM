@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { and, asc, desc, eq, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 
 import {
   complianceDecisionResultSchema,
@@ -34,6 +34,8 @@ import {
   organizations,
   outboundMessages,
   outboxEvents,
+  pilotReviewCheckpoints,
+  pilotRuns,
   regionPolicyVersions,
   regions,
   sendAttempts,
@@ -117,6 +119,9 @@ export interface RuntimeSendGate {
   readonly businessContactEmail: string;
   readonly businessPostalAddress: string | undefined;
   readonly globalDailyCap: number;
+  readonly pilotMode: boolean;
+  readonly pilotTargetLeads: number;
+  readonly pilotHumanApprovalRequired: boolean;
   readonly externalIntegrationConfigured: boolean;
 }
 
@@ -169,7 +174,7 @@ function scheduleForTouches(now: Date, timezone: string): readonly [Date, Date, 
   return [touchOne, touchTwo, touchThree];
 }
 
-function runtimeBlockReason(mode: GmailDeliveryMode, gate: RuntimeSendGate): string | null {
+export function runtimeBlockReason(mode: GmailDeliveryMode, gate: RuntimeSendGate): string | null {
   if (gate.configuredMode !== mode) {
     return "Delivery mode changed after scheduling.";
   }
@@ -193,6 +198,12 @@ function runtimeBlockReason(mode: GmailDeliveryMode, gate: RuntimeSendGate): str
       return "Sandbox recipient is not the authorized internal user.";
     }
     return null;
+  }
+  if (!gate.pilotMode) {
+    return "Production delivery remains restricted to the controlled pilot.";
+  }
+  if (!gate.pilotHumanApprovalRequired) {
+    return "The controlled pilot requires 100% human approval.";
   }
   return gate.productionSendApproved
     ? null
@@ -646,6 +657,32 @@ export class PostgresOutreachRepository {
 
       let reason = runtimeBlockReason(row.sequence.deliveryMode, gate);
       let complianceOutput: ComplianceDecisionResult | null = null;
+      let complianceRegionCode: string | null = null;
+      const [activePilot] =
+        row.sequence.deliveryMode === "production"
+          ? await transaction
+              .select({
+                id: pilotRuns.id,
+                startsAt: pilotRuns.startsAt,
+                endsAt: pilotRuns.endsAt,
+                reviewInterval: pilotRuns.reviewInterval,
+                targetLeads: pilotRuns.targetLeads
+              })
+              .from(pilotRuns)
+              .where(
+                and(
+                  eq(pilotRuns.mode, "production"),
+                  eq(pilotRuns.status, "running"),
+                  eq(pilotRuns.externalAuthorized, true),
+                  lte(pilotRuns.startsAt, now),
+                  gte(pilotRuns.endsAt, now)
+                )
+              )
+              .limit(1)
+          : [];
+      if (row.sequence.deliveryMode === "production" && activePilot === undefined) {
+        reason = "Production requires an externally authorized running pilot window.";
+      }
       if (row.sequence.complianceDecisionId === null) {
         if (row.sequence.deliveryMode !== "dry_run") {
           reason = "External delivery requires an immutable compliance decision.";
@@ -662,7 +699,8 @@ export class PostgresOutreachRepository {
             output: complianceDecisions.output,
             policyVersion: regionPolicyVersions.version,
             policyStatus: regionPolicyVersions.status,
-            regionEnabled: regions.enabled
+            regionEnabled: regions.enabled,
+            regionCode: regions.code
           })
           .from(complianceDecisions)
           .innerJoin(
@@ -681,6 +719,7 @@ export class PostgresOutreachRepository {
         ) {
           reason = "Compliance decision is missing or does not match this sequence.";
         } else {
+          complianceRegionCode = compliance.regionCode;
           complianceOutput = complianceDecisionResultSchema.parse(compliance.output);
           if (row.draft.language !== complianceOutput.effectiveLanguage) {
             reason = "Approved draft language no longer matches the compliance decision.";
@@ -695,6 +734,14 @@ export class PostgresOutreachRepository {
             reason = "Compliance policy is stale, inactive, disabled, or not approved for sending.";
           }
         }
+      }
+      if (
+        reason === null &&
+        row.sequence.deliveryMode === "production" &&
+        (!["US", "UK"].includes(complianceRegionCode ?? "") ||
+          row.contact.subscriberType !== "corporate")
+      ) {
+        reason = "The controlled pilot accepts only US/UK corporate contacts.";
       }
       const flags = await transaction.select().from(featureFlags);
       const flagMap = new Map(flags.map((flag) => [flag.key, flag.enabled]));
@@ -824,6 +871,27 @@ export class PostgresOutreachRepository {
               sql`${outboundMessages.sentAt} >= ${since}`
             )
           );
+        const [pilotCounts] =
+          activePilot === undefined
+            ? []
+            : await transaction
+                .select({
+                  leads: sql<number>`count(DISTINCT ${sequences.leadId})::int`,
+                  messages: sql<number>`count(*)::int`,
+                  currentLeadMessages: sql<number>`count(*) FILTER (
+                    WHERE ${sequences.leadId} = ${row.sequence.leadId}
+                  )::int`
+                })
+                .from(outboundMessages)
+                .innerJoin(sequences, eq(sequences.id, outboundMessages.sequenceId))
+                .where(
+                  and(
+                    eq(outboundMessages.deliveryStatus, "sent"),
+                    eq(sequences.deliveryMode, "production"),
+                    gte(outboundMessages.sentAt, activePilot.startsAt),
+                    lte(outboundMessages.sentAt, activePilot.endsAt)
+                  )
+                );
         const campaignCap = Math.min(row.campaign.dailyCap, gate.globalDailyCap);
         const senderCap = Math.min(row.sender.dailyCap, gate.globalDailyCap);
         if ((counts?.campaign ?? 0) >= campaignCap) {
@@ -832,6 +900,31 @@ export class PostgresOutreachRepository {
           reason = "Sender rolling 24-hour cap reached.";
         } else if ((counts?.domain ?? 0) >= row.campaign.dailyDomainCap) {
           reason = "Recipient-domain rolling 24-hour cap reached.";
+        } else if (
+          gate.pilotMode &&
+          (pilotCounts?.currentLeadMessages ?? 0) === 0 &&
+          (pilotCounts?.leads ?? 0) >=
+            Math.min(gate.pilotTargetLeads, activePilot?.targetLeads ?? 0)
+        ) {
+          reason = "Controlled pilot has reached its 50-lead envelope.";
+        } else if (
+          activePilot !== undefined &&
+          (pilotCounts?.messages ?? 0) > 0 &&
+          (pilotCounts?.messages ?? 0) % activePilot.reviewInterval === 0
+        ) {
+          const [checkpoint] = await transaction
+            .select({ id: pilotReviewCheckpoints.id })
+            .from(pilotReviewCheckpoints)
+            .where(
+              and(
+                eq(pilotReviewCheckpoints.pilotRunId, activePilot.id),
+                eq(pilotReviewCheckpoints.afterMessageCount, pilotCounts?.messages ?? 0)
+              )
+            )
+            .limit(1);
+          if (checkpoint === undefined) {
+            reason = `Pilot review checkpoint is required after ${pilotCounts?.messages ?? 0} messages.`;
+          }
         }
       }
 
@@ -937,6 +1030,8 @@ export class PostgresOutreachRepository {
             suppressionChecked: true,
             latestApprovalChecked: true,
             capsChecked: true,
+            pilotEnvelopeChecked: gate.pilotMode,
+            pilotRunId: activePilot?.id ?? null,
             killSwitchesChecked: true,
             complianceDecisionId: row.sequence.complianceDecisionId,
             compliancePolicyVersion: complianceOutput?.policyVersion ?? null,

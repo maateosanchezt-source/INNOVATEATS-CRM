@@ -1609,4 +1609,205 @@ describe("database migrations", () => {
       `)
     ).rejects.toThrow();
   });
+
+  it("enforces immutable evaluation snapshots and a closed controlled pilot", async () => {
+    const checklist = await database.query<{ count: number }>(
+      "SELECT count(*)::int AS count FROM go_live_checklist_items"
+    );
+    expect(checklist.rows[0]?.count).toBe(14);
+
+    await database.exec(`
+      INSERT INTO prompt_versions (
+        id, agent_name, version, content_hash, configuration_json, created_by
+      ) VALUES (
+        'a1000000-0000-4000-8000-000000000008',
+        'copy',
+        'copy-eval-v1',
+        '${"a".repeat(64)}',
+        '{"modelRoute":"OPENAI_COPY_MODEL"}',
+        'test'
+      );
+    `);
+    await expect(
+      database.exec(`
+        UPDATE prompt_versions
+        SET configuration_json = '{"tampered":true}'
+        WHERE id = 'a1000000-0000-4000-8000-000000000008'
+      `)
+    ).rejects.toThrow(/immutable/);
+    await database.exec(`
+      UPDATE prompt_versions
+      SET
+        status = 'active',
+        approved_by = 'maateosanchezt@gmail.com',
+        approved_at = now()
+      WHERE id = 'a1000000-0000-4000-8000-000000000008';
+
+      INSERT INTO eval_runs (
+        id, suite_version, dataset_version, started_by
+      ) VALUES (
+        'a2000000-0000-4000-8000-000000000008',
+        'pilot-evals-v1',
+        'pilot-leads-v1',
+        'maateosanchezt@gmail.com'
+      );
+
+      UPDATE eval_runs
+      SET
+        status = 'passed',
+        report_json = '{"automatedPassed":true,"pilotReady":false}',
+        automated_passed = true,
+        pilot_ready = false,
+        completed_at = now()
+      WHERE id = 'a2000000-0000-4000-8000-000000000008';
+    `);
+    await expect(
+      database.exec(`
+        UPDATE eval_runs
+        SET pilot_ready = true
+        WHERE id = 'a2000000-0000-4000-8000-000000000008'
+      `)
+    ).rejects.toThrow(/one-way/);
+
+    await expect(
+      database.exec(`
+        INSERT INTO pilot_runs (
+          name, mode, status, allowed_regions_json, starts_at, ends_at,
+          external_authorized, created_by
+        ) VALUES (
+          'Unsafe production pilot',
+          'production',
+          'planned',
+          '["US","UK"]',
+          now(),
+          now() + interval '14 days',
+          false,
+          'test'
+        )
+      `)
+    ).rejects.toThrow();
+    await expect(
+      database.exec(`
+        INSERT INTO pilot_runs (
+          name, allowed_regions_json, daily_email_cap, starts_at, ends_at, created_by
+        ) VALUES (
+          'Unsafe oversized pilot',
+          '["US","UK"]',
+          11,
+          now(),
+          now() + interval '14 days',
+          'test'
+        )
+      `)
+    ).rejects.toThrow();
+
+    await database.exec(`
+      INSERT INTO pilot_runs (
+        id, name, mode, status, allowed_regions_json, starts_at, ends_at, created_by
+      ) VALUES (
+        'a3000000-0000-4000-8000-000000000008',
+        'Controlled simulation',
+        'simulation',
+        'running',
+        '["US","UK"]',
+        now(),
+        now() + interval '14 days',
+        'maateosanchezt@gmail.com'
+      );
+
+      INSERT INTO pilot_review_checkpoints (
+        id, pilot_run_id, after_message_count, metrics_json, decision, notes, reviewed_by
+      ) VALUES (
+        'a4000000-0000-4000-8000-000000000008',
+        'a3000000-0000-4000-8000-000000000008',
+        20,
+        '{"bounceRate":0}',
+        'continue',
+        'First required review',
+        'maateosanchezt@gmail.com'
+      );
+    `);
+    await expect(
+      database.exec(`
+        UPDATE pilot_review_checkpoints
+        SET notes = 'tampered'
+        WHERE id = 'a4000000-0000-4000-8000-000000000008'
+      `)
+    ).rejects.toThrow(/append-only/);
+    await expect(
+      database.exec(`
+        INSERT INTO pilot_review_checkpoints (
+          pilot_run_id, after_message_count, metrics_json, decision, notes, reviewed_by
+        ) VALUES (
+          'a3000000-0000-4000-8000-000000000008',
+          10,
+          '{}',
+          'continue',
+          'Too early',
+          'test'
+        )
+      `)
+    ).rejects.toThrow();
+  });
+
+  it("requires evidence for go-live reviews and exact human quality averages", async () => {
+    await expect(
+      database.exec(`
+        UPDATE go_live_checklist_items
+        SET
+          status = 'passed',
+          reviewed_by = 'maateosanchezt@gmail.com',
+          reviewed_at = now()
+        WHERE key = 'spf'
+      `)
+    ).rejects.toThrow();
+    await database.exec(`
+      UPDATE go_live_checklist_items
+      SET
+        status = 'blocked',
+        evidence_json = '{"reason":"DNS evidence not supplied"}',
+        reviewed_by = 'maateosanchezt@gmail.com',
+        reviewed_at = now()
+      WHERE key = 'spf';
+    `);
+    const spf = await database.query<{ status: string }>(
+      "SELECT status FROM go_live_checklist_items WHERE key = 'spf'"
+    );
+    expect(spf.rows[0]?.status).toBe("blocked");
+
+    await seedApprovedOutreachFixture(database);
+    await expect(
+      database.exec(`
+        INSERT INTO message_quality_reviews (
+          message_draft_id, research_accuracy, opportunity_insight, innovateats_fit,
+          mateo_credibility, naturalness, cta_quality, risk_safety, average_score,
+          notes, reviewed_by
+        ) VALUES (
+          '95000000-0000-4000-8000-000000000001',
+          5, 4, 4, 5, 4, 5, 5, 5,
+          'Wrong average',
+          'maateosanchezt@gmail.com'
+        )
+      `)
+    ).rejects.toThrow();
+    await database.exec(`
+      INSERT INTO message_quality_reviews (
+        id, message_draft_id, research_accuracy, opportunity_insight, innovateats_fit,
+        mateo_credibility, naturalness, cta_quality, risk_safety, average_score,
+        notes, reviewed_by
+      ) VALUES (
+        'a5000000-0000-4000-8000-000000000008',
+        '95000000-0000-4000-8000-000000000001',
+        5, 4, 4, 5, 4, 5, 5, 4.57,
+        'Reviewed against the seven-part rubric',
+        'maateosanchezt@gmail.com'
+      );
+    `);
+    await expect(
+      database.exec(`
+        DELETE FROM message_quality_reviews
+        WHERE id = 'a5000000-0000-4000-8000-000000000008'
+      `)
+    ).rejects.toThrow(/append-only/);
+  });
 });

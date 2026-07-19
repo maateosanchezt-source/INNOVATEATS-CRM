@@ -1521,6 +1521,85 @@ textarea:focus {
   align-self: end;
 }
 
+.readinessMetrics,
+.checklistGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin: 24px 0;
+}
+
+.readinessAction button {
+  min-width: 180px;
+}
+
+.checklistGrid h3 {
+  min-height: 48px;
+}
+
+.checklistActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.checklist-passed {
+  background: #e7f2e9;
+  color: var(--green);
+}
+
+.checklist-blocked {
+  background: #f8e8e5;
+  color: var(--danger);
+}
+
+.checklist-unknown {
+  background: var(--paper-strong);
+  color: var(--muted);
+}
+
+.modelRoutePanel {
+  margin: 24px 0;
+}
+
+.routeGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.routeGrid div {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--paper-strong);
+}
+
+.routeGrid span {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.dataGovernancePanel {
+  margin: 24px 0 64px;
+}
+
+.dataGovernanceActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 18px;
+}
+
+.dataGovernanceActions input {
+  min-width: 320px;
+}
+
 @media (max-width: 800px) {
   .cardGrid {
     grid-template-columns: repeat(2, 1fr);
@@ -1563,6 +1642,15 @@ textarea:focus {
   .handoffGrid,
   .policyGrid {
     grid-template-columns: 1fr;
+  }
+
+  .readinessMetrics,
+  .checklistGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .routeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .filterBar {
@@ -1620,5 +1708,13 @@ textarea:focus {
 
   .complianceProfile form {
     grid-template-columns: 1fr;
+  }
+
+  .routeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dataGovernanceActions input {
+    min-width: 100%;
   }
 }

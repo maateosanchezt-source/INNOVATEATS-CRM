@@ -4,6 +4,7 @@ import {
   ComplianceStateError,
   ContactAssociationError,
   ContactNotFoundError,
+  DataGovernanceStateError,
   EvidenceNotFoundError,
   InboundStateError,
   InvalidLeadTransitionError,
@@ -11,6 +12,7 @@ import {
   MessageDraftNotFoundError,
   MessageStateError,
   OutreachStateError,
+  ReadinessStateError,
   ResearchStateError
 } from "@innovateats/db";
 import { SecureFetchError } from "@innovateats/integrations";
@@ -96,6 +98,20 @@ export function apiErrorResponse(error: unknown): Response {
   if (error instanceof ResearchStateError) {
     return Response.json(
       { error: { code: "invalid_research_state", message: error.message } },
+      { status: 409 }
+    );
+  }
+
+  if (error instanceof ReadinessStateError) {
+    return Response.json(
+      { error: { code: "invalid_readiness_state", message: error.message } },
+      { status: 409 }
+    );
+  }
+
+  if (error instanceof DataGovernanceStateError) {
+    return Response.json(
+      { error: { code: "invalid_data_governance_state", message: error.message } },
       { status: 409 }
     );
   }

@@ -82,5 +82,27 @@ export {
   PostgresSafetyControlRepository,
   type AuditActor
 } from "./repositories/safety-controls.js";
+export {
+  PostgresMetricsRepository,
+  type CostMetrics,
+  type DeliverabilityMetrics,
+  type FunnelMetrics,
+  type QualityMetrics
+} from "./repositories/metrics.js";
+export {
+  PostgresReadinessRepository,
+  ReadinessStateError,
+  type ChecklistItemView,
+  type ChecklistStatus,
+  type EvalRunView,
+  type PilotRunView,
+  type ReadinessSnapshot
+} from "./repositories/readiness.js";
+export {
+  DataGovernanceStateError,
+  PostgresDataGovernanceRepository,
+  type DataExportBundle,
+  type ErasureResult
+} from "./repositories/data-governance.js";
 export { schema } from "./schema/index.js";
 export { seedFoundations } from "./seed-data.js";

@@ -19,6 +19,7 @@
     "@innovateats/auth": "workspace:*",
     "@innovateats/config": "workspace:*",
     "@innovateats/db": "workspace:*",
+    "@innovateats/evals": "workspace:*",
     "@innovateats/feature-flags": "workspace:*",
     "@innovateats/integrations": "workspace:*",
     "@innovateats/shared": "workspace:*",

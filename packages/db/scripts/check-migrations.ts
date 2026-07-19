@@ -64,6 +64,24 @@ try {
     throw new Error("Regional compliance migration tables are incomplete.");
   }
 
+  const readinessTables = await database.query<{ table_name: string }>(`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name IN (
+        'prompt_versions',
+        'eval_runs',
+        'pilot_runs',
+        'pilot_review_checkpoints',
+        'go_live_checklist_items',
+        'message_quality_reviews'
+      )
+    ORDER BY table_name
+  `);
+  if (readinessTables.rows.length !== 6) {
+    throw new Error("Evaluation and pilot-readiness migration tables are incomplete.");
+  }
+
   process.stdout.write(`Verified ${migrationNames.length} migration(s) on an empty database.\n`);
 } finally {
   await database.close();

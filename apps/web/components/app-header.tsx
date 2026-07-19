@@ -13,6 +13,7 @@ export function AppHeader({ actor }: { readonly actor: string }) {
         <Link href="/dashboard">Safety</Link>
         <Link href="/leads">Leads</Link>
         <Link href="/replies">Replies</Link>
+        <Link href="/readiness">Readiness</Link>
         <Link href="/settings/regions">Regions</Link>
       </nav>
       <div className="identityBadge">{actor}</div>

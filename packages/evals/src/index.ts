@@ -1,9 +1,23 @@
-export const pilotQualityThresholds = {
-  contactFabricationRate: 0,
-  duplicateSendRate: 0,
-  evidenceMappingCoverage: 1,
-  policyDecisionAccuracy: 0.98,
-  strongLeadPrecision: 0.9,
-  suppressionViolationRate: 0,
-  unsupportedClaimRate: 0
-} as const;
+export {
+  evalCohorts,
+  pilotDatasetVersion,
+  pilotLeadDataset,
+  type EvalCohort,
+  type PilotLeadFixture
+} from "./dataset.js";
+export {
+  gradeLeadFixture,
+  policyAccuracyFixtureResults,
+  runGoldenCases,
+  type GoldenCaseResult,
+  type LeadGrade
+} from "./graders.js";
+export {
+  pilotEvalSuiteVersion,
+  pilotQualityThresholds,
+  runPilotEvalSuite,
+  type EvalMetric,
+  type EvalMetricStatus,
+  type PilotEvalReport,
+  type PilotOutcomeEvidence
+} from "./report.js";

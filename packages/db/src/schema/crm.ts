@@ -276,6 +276,49 @@ export const agentRuns = pgTable(
   ]
 );
 
+export const promptVersions = pgTable(
+  "prompt_versions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    agentName: text("agent_name").notNull(),
+    version: text("version").notNull(),
+    contentHash: text("content_hash").notNull(),
+    configuration: jsonb("configuration_json")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    status: text("status").$type<"draft" | "active" | "retired">().default("draft").notNull(),
+    approvedBy: text("approved_by"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("prompt_version_unique").on(table.agentName, table.version),
+    uniqueIndex("prompt_active_agent_unique")
+      .on(table.agentName)
+      .where(sql`${table.status} = 'active'`)
+  ]
+);
+
+export const evalRuns = pgTable(
+  "eval_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    suiteVersion: text("suite_version").notNull(),
+    datasetVersion: text("dataset_version").notNull(),
+    commitSha: text("commit_sha"),
+    status: text("status").$type<"running" | "passed" | "failed">().default("running").notNull(),
+    report: jsonb("report_json").$type<Record<string, unknown> | null>(),
+    automatedPassed: boolean("automated_passed"),
+    pilotReady: boolean("pilot_ready"),
+    startedBy: text("started_by").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true })
+  },
+  (table) => [index("eval_runs_status_started_index").on(table.status, table.startedAt)]
+);
+
 export const contacts = pgTable(
   "contacts",
   {
@@ -465,6 +508,100 @@ export const campaigns = pgTable(
     updatedAt: updatedAt()
   },
   (table) => [uniqueIndex("campaign_name_unique").on(table.name)]
+);
+
+export const pilotRuns = pgTable(
+  "pilot_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    mode: text("mode")
+      .$type<"simulation" | "sandbox" | "production">()
+      .default("simulation")
+      .notNull(),
+    status: text("status")
+      .$type<"planned" | "running" | "completed" | "aborted">()
+      .default("planned")
+      .notNull(),
+    targetLeads: integer("target_leads").default(50).notNull(),
+    allowedRegions: jsonb("allowed_regions_json").$type<readonly string[]>().notNull(),
+    dailyEmailCap: integer("daily_email_cap").default(10).notNull(),
+    reviewInterval: integer("review_interval").default(20).notNull(),
+    humanApprovalRequired: boolean("human_approval_required").default(true).notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    externalAuthorized: boolean("external_authorized").default(false).notNull(),
+    authorizedBy: text("authorized_by"),
+    authorizedAt: timestamp("authorized_at", { withTimezone: true }),
+    signedResultsBy: text("signed_results_by"),
+    signedResultsAt: timestamp("signed_results_at", { withTimezone: true }),
+    result: jsonb("result_json").$type<Record<string, unknown> | null>(),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (table) => [
+    uniqueIndex("pilot_one_running_unique")
+      .on(table.status)
+      .where(sql`${table.status} = 'running'`),
+    index("pilot_runs_status_window_index").on(table.status, table.startsAt, table.endsAt)
+  ]
+);
+
+export const pilotReviewCheckpoints = pgTable(
+  "pilot_review_checkpoints",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    pilotRunId: uuid("pilot_run_id")
+      .notNull()
+      .references(() => pilotRuns.id, { onDelete: "restrict" }),
+    afterMessageCount: integer("after_message_count").notNull(),
+    metrics: jsonb("metrics_json").$type<Record<string, unknown>>().notNull(),
+    decision: text("decision").$type<"continue" | "pause" | "abort">().notNull(),
+    notes: text("notes").notNull(),
+    reviewedBy: text("reviewed_by").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("pilot_checkpoint_message_unique").on(table.pilotRunId, table.afterMessageCount)
+  ]
+);
+
+export const goLiveChecklistItems = pgTable("go_live_checklist_items", {
+  key: text("key").primaryKey(),
+  category: text("category").notNull(),
+  label: text("label").notNull(),
+  status: text("status").$type<"unknown" | "passed" | "blocked">().default("unknown").notNull(),
+  evidence: jsonb("evidence_json").$type<Record<string, unknown>>().default({}).notNull(),
+  reviewedBy: text("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt()
+});
+
+export const messageQualityReviews = pgTable(
+  "message_quality_reviews",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    messageDraftId: uuid("message_draft_id")
+      .notNull()
+      .references(() => messageDrafts.id, { onDelete: "restrict" }),
+    researchAccuracy: integer("research_accuracy").notNull(),
+    opportunityInsight: integer("opportunity_insight").notNull(),
+    innovateatsFit: integer("innovateats_fit").notNull(),
+    mateoCredibility: integer("mateo_credibility").notNull(),
+    naturalness: integer("naturalness").notNull(),
+    ctaQuality: integer("cta_quality").notNull(),
+    riskSafety: integer("risk_safety").notNull(),
+    averageScore: numeric("average_score", { precision: 4, scale: 2 }).notNull(),
+    notes: text("notes").notNull(),
+    reviewedBy: text("reviewed_by").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("message_quality_review_draft_unique").on(table.messageDraftId),
+    index("message_quality_review_created_index").on(table.createdAt)
+  ]
 );
 
 export const senders = pgTable(
