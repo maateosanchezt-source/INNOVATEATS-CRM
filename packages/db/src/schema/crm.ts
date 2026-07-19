@@ -19,6 +19,10 @@ import type {
   ContactChannelType,
   ContactOrigin,
   ContactVerificationStatus,
+  ComplianceDecisionName,
+  ComplianceDecisionResult,
+  ComplianceInput,
+  ConsentStatus,
   EmailProviderVerdict,
   IcpDimensionKey,
   IcpRecommendedAction,
@@ -32,7 +36,11 @@ import type {
   ReplyClassificationName,
   ReplyRequestedAction,
   OutboundDeliveryStatus,
-  OutreachSequenceStatus
+  OutreachChannel,
+  OutreachSequenceStatus,
+  RegionPolicy,
+  SubscriberType,
+  LanguageProficiency
 } from "@innovateats/shared";
 
 import { regions } from "./foundations.js";
@@ -298,6 +306,18 @@ export const contacts = pgTable(
     verificationProvider: text("verification_provider"),
     isPersonalData: boolean("is_personal_data").default(false).notNull(),
     corporateSubscriberStatus: text("corporate_subscriber_status").default("unknown").notNull(),
+    subscriberType: text("subscriber_type").$type<SubscriberType>().default("unknown").notNull(),
+    consentStatus: text("consent_status").$type<ConsentStatus>().default("unknown").notNull(),
+    languageProficiency: text("language_proficiency")
+      .$type<LanguageProficiency>()
+      .default("unknown")
+      .notNull(),
+    complianceEvidence: jsonb("compliance_evidence_json")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    complianceReviewedBy: text("compliance_reviewed_by"),
+    complianceReviewedAt: timestamp("compliance_reviewed_at", { withTimezone: true }),
     country: text("country"),
     confidence: real("confidence").notNull(),
     doNotContact: boolean("do_not_contact").default(false).notNull(),
@@ -510,6 +530,104 @@ export const suppressionList = pgTable(
   ]
 );
 
+export const regionPolicyVersions = pgTable(
+  "region_policy_versions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    regionId: uuid("region_id")
+      .notNull()
+      .references(() => regions.id, { onDelete: "restrict" }),
+    version: text("version").notNull(),
+    policy: jsonb("policy_json").$type<RegionPolicy>().notNull(),
+    contentHash: text("content_hash").notNull(),
+    status: text("status").$type<"draft" | "active" | "retired">().default("draft").notNull(),
+    sourceUrls: jsonb("source_urls_json").$type<readonly string[]>().notNull(),
+    approvedBy: text("approved_by"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    uniqueIndex("region_policy_version_unique").on(table.regionId, table.version),
+    uniqueIndex("region_policy_active_unique")
+      .on(table.regionId)
+      .where(sql`${table.status} = 'active'`),
+    index("region_policy_status_index").on(table.status, table.createdAt)
+  ]
+);
+
+export const complianceDecisions = pgTable(
+  "compliance_decisions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "restrict" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "restrict" }),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "restrict" }),
+    regionPolicyId: uuid("region_policy_id")
+      .notNull()
+      .references(() => regionPolicyVersions.id, { onDelete: "restrict" }),
+    regionPolicyVersion: text("region_policy_version").notNull(),
+    channel: text("channel").$type<OutreachChannel>().notNull(),
+    decision: text("decision").$type<ComplianceDecisionName>().notNull(),
+    reasons: jsonb("reasons_json").$type<readonly string[]>().notNull(),
+    legalBasisTag: text("legal_basis_tag").notNull(),
+    inputHash: text("input_hash").notNull(),
+    input: jsonb("input_json").$type<ComplianceInput>().notNull(),
+    output: jsonb("output_json").$type<ComplianceDecisionResult>().notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt()
+  },
+  (table) => [
+    index("compliance_decision_association_index").on(
+      table.leadId,
+      table.contactId,
+      table.campaignId,
+      table.createdAt
+    ),
+    index("compliance_decision_policy_index").on(table.regionPolicyId, table.createdAt)
+  ]
+);
+
+export const socialManualQueue = pgTable(
+  "social_manual_queue",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "restrict" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "restrict" }),
+    complianceDecisionId: uuid("compliance_decision_id")
+      .notNull()
+      .references(() => complianceDecisions.id, { onDelete: "restrict" }),
+    channel: text("channel").$type<Exclude<OutreachChannel, "email">>().notNull(),
+    directUrl: text("direct_url").notNull(),
+    message: text("message").notNull(),
+    status: text("status")
+      .$type<"draft" | "copied" | "marked_sent" | "cancelled">()
+      .default("draft")
+      .notNull(),
+    reminderAt: timestamp("reminder_at", { withTimezone: true }),
+    copiedAt: timestamp("copied_at", { withTimezone: true }),
+    markedSentAt: timestamp("marked_sent_at", { withTimezone: true }),
+    automaticActionAttempted: boolean("automatic_action_attempted").default(false).notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt()
+  },
+  (table) => [
+    index("social_manual_lead_index").on(table.leadId, table.createdAt),
+    index("social_manual_reminder_index").on(table.status, table.reminderAt)
+  ]
+);
+
 export const sequences = pgTable(
   "sequences",
   {
@@ -526,6 +644,9 @@ export const sequences = pgTable(
     senderId: uuid("sender_id")
       .notNull()
       .references(() => senders.id, { onDelete: "restrict" }),
+    complianceDecisionId: uuid("compliance_decision_id").references(() => complianceDecisions.id, {
+      onDelete: "restrict"
+    }),
     workflowId: text("workflow_id").notNull(),
     status: text("status").$type<OutreachSequenceStatus>().default("pending_workflow").notNull(),
     currentStep: integer("current_step").default(0).notNull(),

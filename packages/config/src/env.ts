@@ -81,6 +81,8 @@ const serverEnvironmentSchema = z
     REQUIRED_OUTREACH_WEBSITE: z
       .literal("https://innovateats.com")
       .default("https://innovateats.com"),
+    BUSINESS_CONTACT_EMAIL: z.email().default("maateosanchezt@gmail.com"),
+    BUSINESS_POSTAL_ADDRESS: optionalNonEmptyString,
 
     EMAIL_VERIFIER_PROVIDER: z.string().min(1).default("disabled"),
     EMAIL_VERIFIER_API_KEY: optionalNonEmptyString,

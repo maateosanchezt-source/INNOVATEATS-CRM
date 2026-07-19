@@ -1466,6 +1466,61 @@ textarea:focus {
   font-size: 0.8rem;
 }
 
+.policyGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  padding-bottom: 64px;
+}
+
+.policyGrid ul {
+  display: grid;
+  gap: 8px;
+  padding-left: 20px;
+  color: var(--muted);
+}
+
+.sourceLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sourceLinks a {
+  color: var(--green);
+  font-size: 0.8rem;
+}
+
+.complianceProfile {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.complianceProfile summary {
+  cursor: pointer;
+  color: var(--green);
+  font-size: 0.82rem;
+}
+
+.complianceProfile form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.complianceProfile form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.complianceProfile form button {
+  align-self: end;
+}
+
 @media (max-width: 800px) {
   .cardGrid {
     grid-template-columns: repeat(2, 1fr);
@@ -1505,7 +1560,8 @@ textarea:focus {
   .contactGrid,
   .strategySummary,
   .outreachGrid,
-  .handoffGrid {
+  .handoffGrid,
+  .policyGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1559,6 +1615,10 @@ textarea:focus {
   .messageBriefForm,
   .decisionForm,
   .diffGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .complianceProfile form {
     grid-template-columns: 1fr;
   }
 }

@@ -1,4 +1,10 @@
-import { defaultFeatureFlags, type FeatureFlagKey } from "@innovateats/shared";
+import { createHash } from "node:crypto";
+
+import {
+  defaultFeatureFlags,
+  regionalPolicyFixtures,
+  type FeatureFlagKey
+} from "@innovateats/shared";
 
 import type { AppDatabase } from "./client.js";
 import {
@@ -10,6 +16,7 @@ import {
   leadStatusHistory,
   organizations,
   regions,
+  regionPolicyVersions,
   senders,
   sourceDocuments,
   sources,
@@ -191,6 +198,28 @@ export async function seedFoundations(database: AppDatabase): Promise<void> {
       .select({ id: regions.id, code: regions.code })
       .from(regions);
     const regionByCode = new Map(regionRows.map((region) => [region.code, region.id]));
+
+    for (const policy of regionalPolicyFixtures) {
+      const regionId = regionByCode.get(policy.code);
+      if (regionId === undefined) {
+        throw new Error(`Region ${policy.code} is missing for its policy fixture.`);
+      }
+      const serialized = JSON.stringify(policy);
+      await transaction
+        .insert(regionPolicyVersions)
+        .values({
+          regionId,
+          version: policy.version,
+          policy,
+          contentHash: createHash("sha256").update(serialized).digest("hex"),
+          status: "active",
+          sourceUrls: policy.sources.map((source) => source.url),
+          approvedBy: "phase-7-policy-pack",
+          approvedAt: new Date("2026-07-19T00:00:00.000Z"),
+          createdBy: "phase-7-policy-pack"
+        })
+        .onConflictDoNothing();
+    }
 
     for (const item of crmSeed) {
       await transaction

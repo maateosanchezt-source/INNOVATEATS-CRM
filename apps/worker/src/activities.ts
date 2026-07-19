@@ -22,6 +22,8 @@ function runtimeGate(environment: ServerEnvironment): RuntimeSendGate {
     sandboxSendApproved: environment.GMAIL_SANDBOX_SEND_APPROVED,
     authorizedEmail: environment.AUTHORIZED_EMAIL,
     sandboxRecipient: environment.GMAIL_SANDBOX_RECIPIENT,
+    businessContactEmail: environment.BUSINESS_CONTACT_EMAIL,
+    businessPostalAddress: environment.BUSINESS_POSTAL_ADDRESS,
     globalDailyCap: environment.DAILY_EMAIL_CAP,
     externalIntegrationConfigured:
       environment.GMAIL_OAUTH_CLIENT_ID !== undefined &&
@@ -100,7 +102,13 @@ export function createOutreachActivities(
           to: message.recipientEmail,
           from: message.senderEmail,
           subject: message.subject,
-          body: renderOutboundBody(message.body),
+          body: renderOutboundBody(message.body, {
+            contactEmail: message.businessContactEmail,
+            ...(message.physicalPostalAddress === null
+              ? {}
+              : { physicalPostalAddress: message.physicalPostalAddress }),
+            advertisementDisclosure: message.advertisementDisclosure
+          }),
           internetMessageId: message.internetMessageId,
           threadId: message.threadId,
           inReplyTo: message.inReplyTo,

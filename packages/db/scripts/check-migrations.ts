@@ -49,6 +49,21 @@ try {
     throw new Error("Global dry-run migration invariant failed.");
   }
 
+  const regionalTables = await database.query<{ table_name: string }>(`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name IN (
+        'region_policy_versions',
+        'compliance_decisions',
+        'social_manual_queue'
+      )
+    ORDER BY table_name
+  `);
+  if (regionalTables.rows.length !== 3) {
+    throw new Error("Regional compliance migration tables are incomplete.");
+  }
+
   process.stdout.write(`Verified ${migrationNames.length} migration(s) on an empty database.\n`);
 } finally {
   await database.close();

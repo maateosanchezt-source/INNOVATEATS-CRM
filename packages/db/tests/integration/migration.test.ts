@@ -194,6 +194,57 @@ async function seedApprovedOutreachFixture(
 async function seedSentOutreachFixture(database: PGlite): Promise<void> {
   await seedApprovedOutreachFixture(database);
   await database.exec(`
+    INSERT INTO regions (
+      id, code, name, policy_mode, enabled
+    ) VALUES (
+      '11000000-0000-4000-8000-000000000006',
+      'US',
+      'United States',
+      'approval_required',
+      true
+    );
+
+    UPDATE organizations
+    SET region_id = '11000000-0000-4000-8000-000000000006'
+    WHERE id = '15000000-0000-4000-8000-000000000001';
+
+    INSERT INTO region_policy_versions (
+      id, region_id, version, policy_json, content_hash, status,
+      source_urls_json, approved_by, approved_at, created_by
+    ) VALUES (
+      '12000000-0000-4000-8000-000000000006',
+      '11000000-0000-4000-8000-000000000006',
+      'US-test-v1',
+      '{"code":"US","version":"US-test-v1"}',
+      '${"a".repeat(64)}',
+      'active',
+      '["https://www.ftc.gov/"]',
+      'test',
+      now(),
+      'test'
+    );
+
+    INSERT INTO compliance_decisions (
+      id, lead_id, contact_id, campaign_id, region_policy_id,
+      region_policy_version, channel, decision, reasons_json, legal_basis_tag,
+      input_hash, input_json, output_json, created_by
+    ) VALUES (
+      '13000000-0000-4000-8000-000000000006',
+      '25000000-0000-4000-8000-000000000001',
+      '75000000-0000-4000-8000-000000000001',
+      '96000000-0000-4000-8000-000000000001',
+      '12000000-0000-4000-8000-000000000006',
+      'US-test-v1',
+      'email',
+      'approval_required',
+      '["human approval required"]',
+      'can_spam',
+      '${"b".repeat(64)}',
+      '{}',
+      '{"decision":"approval_required"}',
+      'test'
+    );
+
     UPDATE senders
     SET active = true
     WHERE id = '97000000-0000-4000-8000-000000000001';
@@ -215,7 +266,7 @@ async function seedSentOutreachFixture(database: PGlite): Promise<void> {
 
     INSERT INTO sequences (
       id, lead_id, contact_id, campaign_id, sender_id, workflow_id,
-      recipient_timezone, delivery_mode, created_by
+      recipient_timezone, delivery_mode, compliance_decision_id, created_by
     ) VALUES (
       '98000000-0000-4000-8000-000000000006',
       '25000000-0000-4000-8000-000000000001',
@@ -225,6 +276,7 @@ async function seedSentOutreachFixture(database: PGlite): Promise<void> {
       'outreach-sequence:98000000-0000-4000-8000-000000000006',
       'Europe/Madrid',
       'production',
+      '13000000-0000-4000-8000-000000000006',
       'maateosanchezt@gmail.com'
     );
 
@@ -300,6 +352,7 @@ describe("database migrations", () => {
           'message_drafts',
           'message_approvals',
           'campaigns',
+          'compliance_decisions',
           'senders',
           'gmail_oauth_states',
           'gmail_credentials',
@@ -313,7 +366,9 @@ describe("database migrations", () => {
           'reply_classifications',
           'handoffs',
           'internal_notifications',
-          'recheck_tasks'
+          'recheck_tasks',
+          'region_policy_versions',
+          'social_manual_queue'
         )
       ORDER BY table_name
     `);
@@ -323,6 +378,7 @@ describe("database migrations", () => {
       "agent_runs",
       "audit_log",
       "campaigns",
+      "compliance_decisions",
       "contact_verifications",
       "contacts",
       "evidence",
@@ -344,11 +400,13 @@ describe("database migrations", () => {
       "outbound_messages",
       "outbox_events",
       "recheck_tasks",
+      "region_policy_versions",
       "reply_classifications",
       "send_attempts",
       "senders",
       "sequences",
       "session",
+      "social_manual_queue",
       "source_documents",
       "sources",
       "strategy_briefs",
@@ -1140,6 +1198,163 @@ describe("database migrations", () => {
         )
       `)
     ).rejects.toThrow(/association or idempotency is invalid/);
+  });
+
+  it("rejects every external sequence that has no matching compliance decision", async () => {
+    await seedApprovedOutreachFixture(database);
+    await expect(
+      database.exec(`
+        INSERT INTO sequences (
+          lead_id, contact_id, campaign_id, sender_id, workflow_id,
+          recipient_timezone, delivery_mode, created_by
+        ) VALUES (
+          '25000000-0000-4000-8000-000000000001',
+          '75000000-0000-4000-8000-000000000001',
+          '96000000-0000-4000-8000-000000000001',
+          '97000000-0000-4000-8000-000000000001',
+          'outreach-sequence:missing-compliance',
+          'Europe/Madrid',
+          'production',
+          'maateosanchezt@gmail.com'
+        )
+      `)
+    ).rejects.toThrow(/require a compliance decision/);
+  });
+
+  it("protects policy decisions and keeps platform work manual and one-way", async () => {
+    await seedApprovedOutreachFixture(database);
+    await database.exec(`
+      INSERT INTO regions (
+        id, code, name, policy_mode, enabled
+      ) VALUES (
+        '11000000-0000-4000-8000-000000000007',
+        'US',
+        'United States',
+        'approval_required',
+        false
+      );
+
+      UPDATE organizations
+      SET region_id = '11000000-0000-4000-8000-000000000007'
+      WHERE id = '15000000-0000-4000-8000-000000000001';
+
+      INSERT INTO region_policy_versions (
+        id, region_id, version, policy_json, content_hash, status,
+        source_urls_json, approved_by, approved_at, created_by
+      ) VALUES (
+        '12000000-0000-4000-8000-000000000007',
+        '11000000-0000-4000-8000-000000000007',
+        'US-test-manual-v1',
+        '{"code":"US","version":"US-test-manual-v1"}',
+        '${"a".repeat(64)}',
+        'active',
+        '["https://www.ftc.gov/"]',
+        'test',
+        now(),
+        'test'
+      );
+
+      INSERT INTO contacts (
+        id, organization_id, source_document_id, evidence_id, channel_type,
+        value, normalized_value, direct_url, source_url, origin, provenance,
+        verification_status, confidence
+      ) VALUES (
+        '75000000-0000-4000-8000-000000000007',
+        '15000000-0000-4000-8000-000000000001',
+        '35100000-0000-4000-8000-000000000001',
+        '45000000-0000-4000-8000-000000000001',
+        'linkedin',
+        'https://www.linkedin.com/company/example',
+        'https://www.linkedin.com/company/example',
+        'https://www.linkedin.com/company/example',
+        'https://outreach-fixture.example.test.invalid',
+        'published_public',
+        'Official public profile',
+        'published_verified',
+        1
+      );
+
+      INSERT INTO compliance_decisions (
+        id, lead_id, contact_id, campaign_id, region_policy_id,
+        region_policy_version, channel, decision, reasons_json, legal_basis_tag,
+        input_hash, input_json, output_json, created_by
+      ) VALUES (
+        '13000000-0000-4000-8000-000000000007',
+        '25000000-0000-4000-8000-000000000001',
+        '75000000-0000-4000-8000-000000000007',
+        '96000000-0000-4000-8000-000000000001',
+        '12000000-0000-4000-8000-000000000007',
+        'US-test-manual-v1',
+        'linkedin',
+        'draft_only',
+        '["manual platform action only"]',
+        'platform_manual_only',
+        '${"b".repeat(64)}',
+        '{}',
+        '{"decision":"draft_only"}',
+        'test'
+      );
+
+      INSERT INTO social_manual_queue (
+        id, lead_id, contact_id, compliance_decision_id, channel,
+        direct_url, message, created_by
+      ) VALUES (
+        '14000000-0000-4000-8000-000000000007',
+        '25000000-0000-4000-8000-000000000001',
+        '75000000-0000-4000-8000-000000000007',
+        '13000000-0000-4000-8000-000000000007',
+        'linkedin',
+        'https://www.linkedin.com/company/example',
+        'Manual draft https://innovateats.com',
+        'test'
+      );
+    `);
+
+    await expect(
+      database.exec(`
+        UPDATE region_policy_versions
+        SET policy_json = '{"tampered":true}'
+        WHERE id = '12000000-0000-4000-8000-000000000007'
+      `)
+    ).rejects.toThrow(/immutable/);
+    await expect(
+      database.exec(`
+        UPDATE compliance_decisions
+        SET decision = 'allow'
+        WHERE id = '13000000-0000-4000-8000-000000000007'
+      `)
+    ).rejects.toThrow(/append-only/);
+    await expect(
+      database.exec(`
+        UPDATE social_manual_queue
+        SET message = 'Changed draft'
+        WHERE id = '14000000-0000-4000-8000-000000000007'
+      `)
+    ).rejects.toThrow(/immutable/);
+    await expect(
+      database.exec(`
+        UPDATE social_manual_queue
+        SET automatic_action_attempted = true
+        WHERE id = '14000000-0000-4000-8000-000000000007'
+      `)
+    ).rejects.toThrow();
+
+    await database.exec(`
+      UPDATE social_manual_queue
+      SET status = 'copied', copied_at = now()
+      WHERE id = '14000000-0000-4000-8000-000000000007';
+
+      UPDATE social_manual_queue
+      SET status = 'marked_sent', marked_sent_at = now()
+      WHERE id = '14000000-0000-4000-8000-000000000007';
+    `);
+    await expect(
+      database.exec(`
+        UPDATE social_manual_queue
+        SET status = 'cancelled', marked_sent_at = NULL
+        WHERE id = '14000000-0000-4000-8000-000000000007'
+      `)
+    ).rejects.toThrow(/one-way/);
   });
 
   it("blocks scheduling after a contact enters the immutable suppression list", async () => {

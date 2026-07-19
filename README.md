@@ -2,7 +2,7 @@
 
 Internal, single-tenant operating system for evidence-based CPG research, compliant outreach, and high-quality sales handoff.
 
-## Current status: Phase 6
+## Current status: Phase 7
 
 Foundations establish:
 
@@ -75,6 +75,19 @@ Phase 6 adds privacy-bounded reply handling and human handoff:
   suggested reply;
 - Mateo-only ownership and copy controls, with no automatic reply or send action.
 
+Phase 7 adds versioned regional policy and manual platform workflows:
+
+- immutable, sourced US, UK, Spain, central Europe, Australia/New Zealand and Asia policy fixtures;
+- append-only per-lead decisions bound to exact lead, contact, campaign, channel and policy version;
+- database and pre-send rejection of missing, stale, disabled or non-sendable decisions;
+- human-reviewed subscriber type, consent evidence and language proficiency;
+- English-safe localization with Spanish restricted to supported policy plus high/native proficiency;
+- policy-specific identity, contact, website, opt-out, postal and advertising footer requirements;
+- recipient-local send-time preview and the existing Tuesday–Thursday local window;
+- settings UI with typed region confirmation and all regions disabled by default;
+- manual-only LinkedIn, Instagram, Kickstarter, Indiegogo and Upwork draft/copy/open/mark ledger,
+  with no login, browser navigation, posting, DM or application automation.
+
 Research, contact enrichment, message generation, and external email remain disabled by default.
 Inbound Gmail reading also remains disabled until the restricted scope is explicitly approved.
 Dry-run scheduling can exercise the complete durable outbound path without contacting Gmail.
@@ -136,3 +149,5 @@ Contact-engine verification is documented in `docs/testing/phase-3-verification.
 Message and approval verification is documented in `docs/testing/phase-4-verification.md`.
 Gmail and durable-sequence verification is documented in `docs/testing/phase-5-verification.md`.
 Reply and handoff verification is documented in `docs/testing/phase-6-verification.md`.
+Regional policy and manual-platform verification is documented in
+`docs/testing/phase-7-verification.md`.

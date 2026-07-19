@@ -6,7 +6,12 @@ import { messageBriefSchema } from "@innovateats/shared";
 import { requireApiActor } from "@/lib/api-auth";
 import { apiErrorResponse } from "@/lib/api-response";
 import { evaluateMessageGenerationGate } from "@/lib/message-policy";
-import { environment, messageRepository, safetyControlService } from "@/lib/runtime";
+import {
+  complianceRepository,
+  environment,
+  messageRepository,
+  safetyControlService
+} from "@/lib/runtime";
 
 export async function POST(
   request: Request,
@@ -29,6 +34,24 @@ export async function POST(
     if (!gate.allowed) {
       return Response.json(
         { error: { code: "message_generation_disabled", message: gate.reason } },
+        { status: 409 }
+      );
+    }
+    const language = await complianceRepository().resolveMessageLanguage(
+      leadId,
+      brief.contactId,
+      brief.language
+    );
+    if (language.effectiveLanguage !== brief.language) {
+      return Response.json(
+        {
+          error: {
+            code: "regional_language_downgrade_required",
+            message:
+              "Spanish copy requires an active policy that supports Spanish and a human-recorded high or native proficiency. Use English or update the contact compliance profile."
+          },
+          data: { language }
+        },
         { status: 409 }
       );
     }
