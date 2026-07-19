@@ -43,6 +43,8 @@ describe("database migrations", () => {
           'kill_switches',
           'audit_log',
           'agent_runs',
+          'contacts',
+          'contact_verifications',
           'sources',
           'source_documents',
           'organizations',
@@ -59,6 +61,8 @@ describe("database migrations", () => {
       "account",
       "agent_runs",
       "audit_log",
+      "contact_verifications",
+      "contacts",
       "evidence",
       "feature_flags",
       "founders",
@@ -296,5 +300,209 @@ describe("database migrations", () => {
         )
       `)
     ).rejects.toThrow();
+  });
+
+  it("blocks invalid contact associations and guessed verification claims", async () => {
+    await database.exec(`
+      INSERT INTO sources (id, type, name)
+      VALUES (
+        '30000000-0000-4000-8000-000000000096',
+        'secure_fetch',
+        'Contact fixture'
+      );
+
+      INSERT INTO source_documents (
+        id, source_id, url, canonical_url, content_hash, trust_level
+      ) VALUES (
+        '31000000-0000-4000-8000-000000000096',
+        '30000000-0000-4000-8000-000000000096',
+        'https://contact-fixture.example.test.invalid/contact',
+        'https://contact-fixture.example.test.invalid/contact',
+        '${"a".repeat(64)}',
+        'primary'
+      );
+
+      INSERT INTO organizations (
+        id, normalized_name, display_name, canonical_domain, country, stage
+      ) VALUES
+      (
+        '10000000-0000-4000-8000-000000000096',
+        'contact fixture',
+        'Contact Fixture',
+        'contact-fixture.example.test.invalid',
+        'Spain',
+        'prelaunch'
+      ),
+      (
+        '10000000-0000-4000-8000-000000000095',
+        'unrelated fixture',
+        'Unrelated Fixture',
+        'unrelated-fixture.example.test.invalid',
+        'Spain',
+        'prelaunch'
+      );
+
+      INSERT INTO leads (id, organization_id, status)
+      VALUES
+      (
+        '20000000-0000-4000-8000-000000000096',
+        '10000000-0000-4000-8000-000000000096',
+        'scored'
+      ),
+      (
+        '20000000-0000-4000-8000-000000000095',
+        '10000000-0000-4000-8000-000000000095',
+        'scored'
+      );
+
+      INSERT INTO evidence (
+        id,
+        lead_id,
+        source_document_id,
+        fact_type,
+        claim,
+        quote_or_summary,
+        source_url,
+        observed_at,
+        confidence,
+        created_by
+      ) VALUES (
+        '40000000-0000-4000-8000-000000000096',
+        '20000000-0000-4000-8000-000000000096',
+        '31000000-0000-4000-8000-000000000096',
+        'source_snapshot',
+        'Official contact snapshot',
+        'hello@contact-fixture.example.test.invalid',
+        'https://contact-fixture.example.test.invalid/contact',
+        now(),
+        1,
+        'test'
+      );
+
+      INSERT INTO contacts (
+        id,
+        organization_id,
+        source_document_id,
+        evidence_id,
+        channel_type,
+        value,
+        normalized_value,
+        direct_url,
+        source_url,
+        origin,
+        provenance,
+        verification_status,
+        confidence
+      ) VALUES (
+        '70000000-0000-4000-8000-000000000096',
+        '10000000-0000-4000-8000-000000000096',
+        '31000000-0000-4000-8000-000000000096',
+        '40000000-0000-4000-8000-000000000096',
+        'corporate_email',
+        'hello@contact-fixture.example.test.invalid',
+        'hello@contact-fixture.example.test.invalid',
+        'mailto:hello@contact-fixture.example.test.invalid',
+        'https://contact-fixture.example.test.invalid/contact',
+        'published_public',
+        'Official mailto',
+        'published_verified',
+        0.99
+      );
+    `);
+
+    await expect(
+      database.exec(`
+        INSERT INTO contacts (
+          organization_id,
+          source_document_id,
+          evidence_id,
+          channel_type,
+          value,
+          normalized_value,
+          direct_url,
+          source_url,
+          origin,
+          provenance,
+          verification_status,
+          confidence
+        ) VALUES (
+          '10000000-0000-4000-8000-000000000095',
+          '31000000-0000-4000-8000-000000000096',
+          '40000000-0000-4000-8000-000000000096',
+          'corporate_email',
+          'wrong@unrelated-fixture.example.test.invalid',
+          'wrong@unrelated-fixture.example.test.invalid',
+          'mailto:wrong@unrelated-fixture.example.test.invalid',
+          'https://contact-fixture.example.test.invalid/contact',
+          'published_public',
+          'Wrong association',
+          'published_verified',
+          0.9
+        )
+      `)
+    ).rejects.toThrow(/association is invalid/);
+
+    await expect(
+      database.exec(`
+        INSERT INTO contacts (
+          organization_id,
+          source_document_id,
+          evidence_id,
+          channel_type,
+          value,
+          normalized_value,
+          direct_url,
+          source_url,
+          origin,
+          provenance,
+          verification_status,
+          verification_provider,
+          confidence
+        ) VALUES (
+          '10000000-0000-4000-8000-000000000096',
+          '31000000-0000-4000-8000-000000000096',
+          '40000000-0000-4000-8000-000000000096',
+          'named_business_email',
+          'guessed@contact-fixture.example.test.invalid',
+          'guessed@contact-fixture.example.test.invalid',
+          'mailto:guessed@contact-fixture.example.test.invalid',
+          'https://contact-fixture.example.test.invalid/contact',
+          'inferred_pattern',
+          'Guessed pattern',
+          'provider_verified',
+          'fixture',
+          0.5
+        )
+      `)
+    ).rejects.toThrow();
+
+    await database.exec(`
+      INSERT INTO contact_verifications (
+        contact_id,
+        status,
+        syntax_valid,
+        mx_found,
+        provider_verdict,
+        reason,
+        checked_at,
+        result_json,
+        created_by
+      ) VALUES (
+        '70000000-0000-4000-8000-000000000096',
+        'mx_valid',
+        true,
+        true,
+        'unknown',
+        'MX fixture',
+        now(),
+        '{"status":"mx_valid"}',
+        'test'
+      )
+    `);
+
+    await expect(database.exec("DELETE FROM contact_verifications")).rejects.toThrow(/append-only/);
+    await expect(
+      database.exec("UPDATE contact_verifications SET reason = 'tampered'")
+    ).rejects.toThrow(/append-only/);
   });
 });

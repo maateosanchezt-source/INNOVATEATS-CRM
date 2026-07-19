@@ -153,6 +153,7 @@ export class PostgresResearchRepository {
             redirectCount: snapshot.redirectCount,
             resolvedAddresses: snapshot.resolvedAddresses,
             robotsDecision: snapshot.robotsDecision,
+            publicLinks: snapshot.publicLinks,
             untrustedContent: true
           }
         })

@@ -13,6 +13,16 @@ export class PhaseZeroProviderDisabledError extends Error {
 }
 
 export {
+  DisabledEmailVerificationProvider,
+  FixtureEmailVerificationProvider,
+  NodeMxResolver,
+  verifyBusinessEmail,
+  type EmailProviderResult,
+  type EmailVerificationProvider,
+  type MxResolver,
+  type VerifyBusinessEmailOptions
+} from "./email-verifier.js";
+export {
   DisabledSearchProvider,
   FixtureSearchProvider,
   SearchProviderDisabledError,

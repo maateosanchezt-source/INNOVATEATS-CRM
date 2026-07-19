@@ -1,6 +1,8 @@
 export { account, session, user, verification } from "./auth.js";
 export {
   agentRuns,
+  contacts,
+  contactVerifications,
   evidence,
   founders,
   leads,
@@ -22,6 +24,8 @@ export {
 import { account, session, user, verification } from "./auth.js";
 import {
   agentRuns,
+  contacts,
+  contactVerifications,
   evidence,
   founders,
   leads,
@@ -44,6 +48,8 @@ export const schema = {
   account,
   agentRuns,
   auditLog,
+  contacts,
+  contactVerifications,
   evidence,
   featureFlags,
   founders,

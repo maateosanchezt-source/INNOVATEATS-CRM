@@ -60,7 +60,7 @@ const serverEnvironmentSchema = z
       .literal("https://innovateats.com")
       .default("https://innovateats.com"),
 
-    EMAIL_VERIFIER_PROVIDER: z.string().min(1).default("mock"),
+    EMAIL_VERIFIER_PROVIDER: z.string().min(1).default("disabled"),
     EMAIL_VERIFIER_API_KEY: optionalNonEmptyString,
 
     SENTRY_DSN: optionalNonEmptyString,

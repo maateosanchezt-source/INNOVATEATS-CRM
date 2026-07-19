@@ -17,6 +17,7 @@ describe("server environment", () => {
       emailSendEnabled: false,
       requiredWebsite: "https://innovateats.com"
     });
+    expect(environment.EMAIL_VERIFIER_PROVIDER).toBe("disabled");
   });
 
   it("parses the string false as false", () => {

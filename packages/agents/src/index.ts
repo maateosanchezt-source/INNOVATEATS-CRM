@@ -7,6 +7,7 @@ export interface TypedAgentProposal<TOutput> {
   readonly evidenceIds: readonly string[];
 }
 
+export { extractPublicContacts, type ContactResearchContext } from "./contact-researcher.js";
 export {
   deduplicateCandidates,
   normalizeEntityName,

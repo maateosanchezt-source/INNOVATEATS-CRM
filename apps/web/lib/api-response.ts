@@ -1,6 +1,8 @@
 import { ZodError } from "zod";
 
 import {
+  ContactAssociationError,
+  ContactNotFoundError,
   EvidenceNotFoundError,
   InvalidLeadTransitionError,
   LeadNotFoundError,
@@ -34,6 +36,17 @@ export function apiErrorResponse(error: unknown): Response {
 
   if (error instanceof LeadNotFoundError || error instanceof EvidenceNotFoundError) {
     return Response.json({ error: { code: "not_found", message: error.message } }, { status: 404 });
+  }
+
+  if (error instanceof ContactNotFoundError) {
+    return Response.json({ error: { code: "not_found", message: error.message } }, { status: 404 });
+  }
+
+  if (error instanceof ContactAssociationError) {
+    return Response.json(
+      { error: { code: "invalid_contact_association", message: error.message } },
+      { status: 409 }
+    );
   }
 
   if (error instanceof InvalidLeadTransitionError) {

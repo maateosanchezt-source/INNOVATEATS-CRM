@@ -64,7 +64,7 @@ describe("secure public fetch", () => {
       "https://brand.com/robots.txt": response(200, "User-agent: *\nAllow: /"),
       "https://brand.com/launch": response(
         200,
-        "<html><head><title>Launch &amp; waitlist</title><script>ignore()</script></head><body>Safe fact</body></html>",
+        '<html><head><title>Launch &amp; waitlist</title><script>ignore()</script></head><body>Safe fact<a href="mailto:Hello@Brand.com?subject=Launch">Email us</a><form action="/contact" aria-label="Contact"></form></body></html>',
         { "content-type": "text/html; charset=utf-8" }
       )
     });
@@ -79,9 +79,13 @@ describe("secure public fetch", () => {
 
     expect(snapshot.finalUrl).toBe("https://brand.com/launch");
     expect(snapshot.title).toBe("Launch & waitlist");
-    expect(snapshot.extractedText).toBe("Launch & waitlist Safe fact");
+    expect(snapshot.extractedText).toBe("Launch & waitlist Safe fact Email us");
     expect(snapshot.contentHash).toMatch(/^[a-f0-9]{64}$/u);
     expect(snapshot.resolvedAddresses).toEqual(["93.184.216.34"]);
+    expect(snapshot.publicLinks).toEqual([
+      { kind: "mailto", href: "mailto:hello@brand.com", label: "Email us" },
+      { kind: "form", href: "https://brand.com/contact", label: "Contact" }
+    ]);
     expect(transport.requests.every((request) => request.address.address === "93.184.216.34")).toBe(
       true
     );

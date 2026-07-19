@@ -20,7 +20,8 @@
     "test:integration": "vitest run tests/integration --root . --config ../../vitest.config.ts --passWithNoTests"
   },
   "dependencies": {
-    "@innovateats/shared": "workspace:*"
+    "@innovateats/shared": "workspace:*",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "26.1.1",
