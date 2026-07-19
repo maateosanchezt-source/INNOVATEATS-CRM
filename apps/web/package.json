@@ -1,0 +1,35 @@
+{
+  "name": "@innovateats/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
+    "dev": "next dev --hostname 0.0.0.0",
+    "lint": "eslint app components lib next.config.ts",
+    "start": "next start --hostname 0.0.0.0",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root . --config ../../vitest.config.ts",
+    "test:unit": "vitest run tests/unit --root . --config ../../vitest.config.ts",
+    "test:integration": "vitest run tests/integration --root . --config ../../vitest.config.ts --passWithNoTests"
+  },
+  "dependencies": {
+    "@innovateats/auth": "workspace:*",
+    "@innovateats/config": "workspace:*",
+    "@innovateats/db": "workspace:*",
+    "@innovateats/feature-flags": "workspace:*",
+    "@innovateats/shared": "workspace:*",
+    "better-auth": "1.6.23",
+    "next": "16.2.10",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

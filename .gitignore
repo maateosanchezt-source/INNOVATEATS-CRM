@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+.next/
+.turbo/
+coverage/
+dist/
+node_modules/
+playwright-report/
+test-results/
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+packages/db/.pglite/

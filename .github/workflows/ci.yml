@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+        env:
+          NODE_ENV: production
+          APP_URL: https://crm.invalid
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+          BETTER_AUTH_SECRET: ci-only-secret-that-is-at-least-thirty-two-characters
+          AUTHORIZED_EMAIL: maateosanchezt@gmail.com
+          GLOBAL_DRY_RUN: "true"
+          EMAIL_SEND_ENABLED: "false"
+          AUTONOMOUS_SEND_ENABLED: "false"
+
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate:check
