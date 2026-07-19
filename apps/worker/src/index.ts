@@ -8,6 +8,7 @@ import { NativeConnection, Worker } from "@temporalio/worker";
 
 import { createOutreachActivities } from "./activities.js";
 import { WorkerHealthServer } from "./health.js";
+import { GmailInboundPoller } from "./inbound.js";
 import { SequenceOutboxProcessor } from "./outbox.js";
 
 const environment = loadServerEnvironment();
@@ -24,6 +25,7 @@ let clientConnection: Connection | undefined;
 let database: DatabaseClient | undefined;
 let worker: Worker | undefined;
 let outbox: SequenceOutboxProcessor | undefined;
+let inbound: GmailInboundPoller | undefined;
 let stopping = false;
 
 async function stop(signal: string): Promise<void> {
@@ -42,6 +44,7 @@ async function stop(signal: string): Promise<void> {
 
   worker?.shutdown();
   outbox?.stop();
+  inbound?.stop();
   await connection?.close();
   await clientConnection?.close();
   await database?.close();
@@ -78,6 +81,8 @@ try {
   });
   outbox = new SequenceOutboxProcessor(database.db, temporal, environment.TEMPORAL_TASK_QUEUE);
   outbox.start();
+  inbound = new GmailInboundPoller(database.db, environment, logger);
+  inbound.start();
 
   health.update({
     lifecycle: "ready",
@@ -89,6 +94,7 @@ try {
     {
       dryRun: environment.GLOBAL_DRY_RUN,
       emailSendEnabled: environment.EMAIL_SEND_ENABLED,
+      inboundProcessingEnabled: environment.INBOUND_PROCESSING_ENABLED,
       namespace: environment.TEMPORAL_NAMESPACE,
       taskQueue: environment.TEMPORAL_TASK_QUEUE
     },

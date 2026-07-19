@@ -51,6 +51,15 @@ export {
   type GmailSenderRecord
 } from "./repositories/gmail-auth.js";
 export {
+  InboundStateError,
+  PostgresInboundRepository,
+  type IngestedReplyResult,
+  type KnownGmailThread,
+  type ReplyDetail,
+  type ReplyHandoffContext,
+  type ReplyListItem
+} from "./repositories/inbound.js";
+export {
   OutreachStateError,
   PostgresOutreachRepository,
   type ClaimedOutbound,

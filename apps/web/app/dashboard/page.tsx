@@ -6,7 +6,7 @@ import { SafetyControlService } from "@innovateats/feature-flags";
 import { isAuthorizedEmail } from "@innovateats/shared";
 
 import { buildDashboardModel } from "@/lib/dashboard-model";
-import { environment, internalAuth, safetyControlService } from "@/lib/runtime";
+import { environment, inboundRepository, internalAuth, safetyControlService } from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +26,7 @@ export default async function DashboardPage() {
     snapshot = SafetyControlService.safestPossibleSnapshot();
   }
   const model = buildDashboardModel(snapshot);
+  const unreadReplies = await inboundRepository().countUnreadNotifications(config.AUTHORIZED_EMAIL);
 
   return (
     <main className="dashboardShell">
@@ -58,6 +59,14 @@ export default async function DashboardPage() {
           <p>Message validation blocks approval when the exact website is absent.</p>
         </div>
         <a href="https://innovateats.com">https://innovateats.com</a>
+      </section>
+      <section className="foundationPanel">
+        <div>
+          <p className="eyebrow">HUMAN HANDOFF</p>
+          <h2>{unreadReplies} priority replies need attention</h2>
+          <p>Every matched reply stops its sequence before Mateo reviews the draft.</p>
+        </div>
+        <Link href="/replies">Open reply inbox →</Link>
       </section>
       <section className="foundationPanel">
         <div>

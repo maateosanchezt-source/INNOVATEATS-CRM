@@ -4,6 +4,7 @@ import {
   ContactAssociationError,
   ContactNotFoundError,
   EvidenceNotFoundError,
+  InboundStateError,
   InvalidLeadTransitionError,
   LeadNotFoundError,
   MessageDraftNotFoundError,
@@ -59,6 +60,13 @@ export function apiErrorResponse(error: unknown): Response {
   if (error instanceof OutreachStateError) {
     return Response.json(
       { error: { code: "invalid_outreach_state", message: error.message } },
+      { status: 409 }
+    );
+  }
+
+  if (error instanceof InboundStateError) {
+    return Response.json(
+      { error: { code: "invalid_inbound_state", message: error.message } },
       { status: 409 }
     );
   }

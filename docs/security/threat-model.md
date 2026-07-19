@@ -33,6 +33,10 @@
 | Spam-like sequence   | Three-touch maximum, bounded copy, one low-friction CTA, easy-out close, and website attribution                                       |
 | Duplicate send       | Unique idempotency key plus transactional outbox                                                                                       |
 | Send after reply     | Temporal signal plus pre-send database check                                                                                           |
+| Reply/send race      | Reply ingestion and outbound claim lock the same sequence before changing state                                                        |
+| Personal inbox read  | History references are filtered to known sent CRM thread IDs before any full-message fetch                                             |
+| Inbound injection    | Reply bodies are inert classifier data; deterministic rules have no tools and cannot execute instructions                              |
+| Auto-reply risk      | Handoff creates a suggested draft only; inbound code has no Gmail-send path                                                            |
 | Suppression bypass   | Checks at approval, scheduling, and send                                                                                               |
 | Audit tampering      | Database trigger denies update/delete                                                                                                  |
 | Secret leakage       | Environment-only secrets and structured log redaction                                                                                  |
@@ -55,3 +59,16 @@ condition passes. Dispatch has one Temporal attempt. An ambiguous result becomes
 `delivery_unknown`, stops the sequence, and cannot be automatically retried. Dry run has no external
 action; sandbox rewrites the recipient to Mateo; production remains unapproved and closed by
 default. Reply classification and automatic bounce/unsubscribe ingestion remain outside this phase.
+
+## Phase 6 boundary
+
+Gmail inbound access is a separate restricted-scope capability and is disabled by default. Enabling
+the environment switch without explicit scope approval is a configuration error, and the database
+flag and kill switches are checked again on every poll. The worker fetches bodies only after matching
+a history reference to a known sent CRM thread, never logs message content, and does not advance the
+history cursor after a processing failure.
+
+Every matched reply stops further automation. Unsubscribe, complaint, hostility, explicit
+no-interest, wrong-person, and bounce outcomes are conservatively suppressed. Reply,
+classification, handoff, notification, and suppression history are append-only or one-way.
+Suggested replies are visible and copyable by Mateo but cannot be sent from the handoff screen.

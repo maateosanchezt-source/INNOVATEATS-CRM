@@ -15,8 +15,10 @@
     "test:integration": "vitest run tests/integration --root . --config ../../vitest.config.ts --passWithNoTests"
   },
   "dependencies": {
+    "@innovateats/agents": "workspace:*",
     "@innovateats/config": "workspace:*",
     "@innovateats/db": "workspace:*",
+    "@innovateats/feature-flags": "workspace:*",
     "@innovateats/integrations": "workspace:*",
     "@innovateats/observability": "workspace:*",
     "@innovateats/shared": "workspace:*",

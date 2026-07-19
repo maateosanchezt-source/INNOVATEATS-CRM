@@ -76,7 +76,8 @@ const serverEnvironmentSchema = z
     GMAIL_DELIVERY_MODE: z.enum(["dry_run", "sandbox", "production"]).default("dry_run"),
     GMAIL_SANDBOX_RECIPIENT: z.email().default("maateosanchezt@gmail.com"),
     GMAIL_SANDBOX_SEND_APPROVED: booleanFromEnvironment.default(false),
-    GMAIL_POLL_INTERVAL_SECONDS: z.coerce.number().int().min(30).max(3600).default(120),
+    GMAIL_INBOUND_OAUTH_APPROVED: booleanFromEnvironment.default(false),
+    GMAIL_POLL_INTERVAL_SECONDS: z.coerce.number().int().min(30).max(3600).default(30),
     REQUIRED_OUTREACH_WEBSITE: z
       .literal("https://innovateats.com")
       .default("https://innovateats.com"),
@@ -137,6 +138,15 @@ const serverEnvironmentSchema = z
         code: "custom",
         message: "Autonomous sending cannot be enabled while email sending is disabled.",
         path: ["AUTONOMOUS_SEND_ENABLED"]
+      });
+    }
+
+    if (environment.INBOUND_PROCESSING_ENABLED && !environment.GMAIL_INBOUND_OAUTH_APPROVED) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Inbound Gmail processing requires explicit approval of the restricted gmail.readonly scope.",
+        path: ["GMAIL_INBOUND_OAUTH_APPROVED"]
       });
     }
 
@@ -238,6 +248,7 @@ export function publicSafetyConfiguration(environment: ServerEnvironment) {
     dryRun: environment.GLOBAL_DRY_RUN,
     emailSendEnabled: environment.EMAIL_SEND_ENABLED,
     gmailDeliveryMode: environment.GMAIL_DELIVERY_MODE,
+    inboundProcessingEnabled: environment.INBOUND_PROCESSING_ENABLED,
     requiredWebsite: environment.REQUIRED_OUTREACH_WEBSITE
   } as const;
 }

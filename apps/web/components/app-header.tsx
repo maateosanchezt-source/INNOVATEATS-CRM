@@ -12,6 +12,7 @@ export function AppHeader({ actor }: { readonly actor: string }) {
       <nav className="primaryNav" aria-label="Primary navigation">
         <Link href="/dashboard">Safety</Link>
         <Link href="/leads">Leads</Link>
+        <Link href="/replies">Replies</Link>
       </nav>
       <div className="identityBadge">{actor}</div>
     </header>

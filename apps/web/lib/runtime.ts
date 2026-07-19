@@ -9,6 +9,7 @@ import {
   PostgresContactRepository,
   PostgresCrmRepository,
   PostgresGmailAuthRepository,
+  PostgresInboundRepository,
   PostgresMessageRepository,
   PostgresOutreachRepository,
   PostgresResearchRepository,
@@ -111,6 +112,10 @@ export function gmailAuthRepository(): PostgresGmailAuthRepository {
   return new PostgresGmailAuthRepository(databaseClient().db);
 }
 
+export function inboundRepository(): PostgresInboundRepository {
+  return new PostgresInboundRepository(databaseClient().db);
+}
+
 export function gmailOAuth(): GoogleGmailOAuth {
   const config = environment();
   if (
@@ -125,7 +130,8 @@ export function gmailOAuth(): GoogleGmailOAuth {
     clientId: config.GMAIL_OAUTH_CLIENT_ID,
     clientSecret: config.GMAIL_OAUTH_CLIENT_SECRET,
     redirectUri: config.GMAIL_OAUTH_REDIRECT_URI,
-    senderEmail: config.GMAIL_SENDER_EMAIL || config.AUTHORIZED_EMAIL
+    senderEmail: config.GMAIL_SENDER_EMAIL || config.AUTHORIZED_EMAIL,
+    inboundReadonlyApproved: config.GMAIL_INBOUND_OAUTH_APPROVED
   });
 }
 

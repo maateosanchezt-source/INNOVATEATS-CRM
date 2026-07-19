@@ -166,3 +166,19 @@ export {
   type ResearchRegionCode,
   type SourceSnapshot
 } from "./research.js";
+export {
+  handoffPacketSchema,
+  inboundMessageSchema,
+  replyClassificationNameSchema,
+  replyClassifications,
+  replyClassificationSchema,
+  replyPriority,
+  replyRequestedActions,
+  replyRequestedActionSchema,
+  replyRequiresMateoNotification,
+  type HandoffPacket,
+  type InboundMessage,
+  type ReplyClassification,
+  type ReplyClassificationName,
+  type ReplyRequestedAction
+} from "./reply.js";

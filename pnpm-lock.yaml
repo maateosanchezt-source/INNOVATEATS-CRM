@@ -96,12 +96,18 @@ importers:
 
   apps/worker:
     dependencies:
+      '@innovateats/agents':
+        specifier: workspace:*
+        version: link:../../packages/agents
       '@innovateats/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@innovateats/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@innovateats/feature-flags':
+        specifier: workspace:*
+        version: link:../../packages/feature-flags
       '@innovateats/integrations':
         specifier: workspace:*
         version: link:../../packages/integrations
