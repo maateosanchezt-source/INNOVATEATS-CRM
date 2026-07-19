@@ -25,6 +25,9 @@ function runtimeGate(environment: ServerEnvironment): RuntimeSendGate {
     businessContactEmail: environment.BUSINESS_CONTACT_EMAIL,
     businessPostalAddress: environment.BUSINESS_POSTAL_ADDRESS,
     globalDailyCap: environment.DAILY_EMAIL_CAP,
+    pilotMode: environment.PILOT_MODE,
+    pilotTargetLeads: environment.PILOT_TARGET_LEADS,
+    pilotHumanApprovalRequired: environment.PILOT_HUMAN_APPROVAL_REQUIRED,
     externalIntegrationConfigured:
       environment.GMAIL_OAUTH_CLIENT_ID !== undefined &&
       environment.GMAIL_OAUTH_CLIENT_SECRET !== undefined &&

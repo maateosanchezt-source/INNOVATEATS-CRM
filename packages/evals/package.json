@@ -19,6 +19,10 @@
     "test:unit": "vitest run tests/unit --root . --config ../../vitest.config.ts --passWithNoTests",
     "test:integration": "vitest run tests/integration --root . --config ../../vitest.config.ts --passWithNoTests"
   },
+  "dependencies": {
+    "@innovateats/agents": "workspace:*",
+    "@innovateats/shared": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "5.9.3",
     "vitest": "4.1.10"

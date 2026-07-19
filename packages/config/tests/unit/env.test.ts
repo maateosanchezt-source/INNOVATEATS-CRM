@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   EnvironmentValidationError,
+  modelForTask,
+  modelRoutingPlan,
   parseServerEnvironment,
   publicSafetyConfiguration
 } from "../../src/index.js";
@@ -17,6 +19,10 @@ describe("server environment", () => {
       emailSendEnabled: false,
       gmailDeliveryMode: "dry_run",
       inboundProcessingEnabled: false,
+      pilotDailyEmailCap: 10,
+      pilotHumanApprovalRequired: true,
+      pilotMode: true,
+      pilotTargetLeads: 50,
       requiredWebsite: "https://innovateats.com"
     });
     expect(environment.EMAIL_VERIFIER_PROVIDER).toBe("disabled");
@@ -118,5 +124,40 @@ describe("server environment", () => {
         REQUIRED_OUTREACH_WEBSITE: "https://example.com"
       })
     ).toThrow(/REQUIRED_OUTREACH_WEBSITE/);
+  });
+
+  it("enforces the controlled pilot envelope", () => {
+    expect(() =>
+      parseServerEnvironment({
+        DAILY_EMAIL_CAP: "11"
+      })
+    ).toThrow(/PILOT_DAILY_EMAIL_CAP/u);
+
+    expect(() =>
+      parseServerEnvironment({
+        PILOT_HUMAN_APPROVAL_REQUIRED: "false"
+      })
+    ).toThrow(/100% human approval/u);
+
+    expect(() =>
+      parseServerEnvironment({
+        AUTONOMOUS_SEND_ENABLED: "true",
+        EMAIL_SEND_ENABLED: "true"
+      })
+    ).toThrow(/controlled pilot/u);
+  });
+
+  it("routes every task independently and fails closed when a model is absent", () => {
+    const environment = parseServerEnvironment({
+      OPENAI_RESEARCH_MODEL: "research-model",
+      OPENAI_QA_MODEL: "qa-model"
+    });
+    const plan = modelRoutingPlan(environment);
+
+    expect(plan).toHaveLength(5);
+    expect(plan.every((route) => route.qualityTier === "strong_baseline")).toBe(true);
+    expect(plan.every((route) => route.downgradeAllowed === false)).toBe(true);
+    expect(modelForTask(environment, "research")).toBe("research-model");
+    expect(() => modelForTask(environment, "copy")).toThrow(/No model is configured/u);
   });
 });

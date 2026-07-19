@@ -101,7 +101,12 @@ const serverEnvironmentSchema = z
     PRODUCTION_SEND_APPROVED: booleanFromEnvironment.default(false),
 
     DAILY_TOKEN_BUDGET_USD: z.coerce.number().nonnegative().max(10_000).default(20),
-    DAILY_EMAIL_CAP: z.coerce.number().int().nonnegative().max(500).default(10)
+    DAILY_EMAIL_CAP: z.coerce.number().int().nonnegative().max(500).default(10),
+    PILOT_MODE: booleanFromEnvironment.default(true),
+    PILOT_TARGET_LEADS: z.coerce.number().int().pipe(z.literal(50)).default(50),
+    PILOT_DAILY_EMAIL_CAP: z.coerce.number().int().min(1).max(10).default(10),
+    PILOT_REVIEW_INTERVAL: z.coerce.number().int().pipe(z.literal(20)).default(20),
+    PILOT_HUMAN_APPROVAL_REQUIRED: booleanFromEnvironment.default(true)
   })
   .superRefine((environment, context) => {
     const hasGoogleClientId = environment.GOOGLE_CLIENT_ID !== undefined;
@@ -201,6 +206,43 @@ const serverEnvironmentSchema = z
       });
     }
 
+    if (environment.PILOT_MODE && environment.DAILY_EMAIL_CAP > environment.PILOT_DAILY_EMAIL_CAP) {
+      context.addIssue({
+        code: "custom",
+        message: "Pilot mode requires DAILY_EMAIL_CAP to stay at or below PILOT_DAILY_EMAIL_CAP.",
+        path: ["DAILY_EMAIL_CAP"]
+      });
+    }
+
+    if (environment.PILOT_MODE && !environment.PILOT_HUMAN_APPROVAL_REQUIRED) {
+      context.addIssue({
+        code: "custom",
+        message: "Pilot mode requires 100% human approval.",
+        path: ["PILOT_HUMAN_APPROVAL_REQUIRED"]
+      });
+    }
+
+    if (environment.PILOT_MODE && environment.AUTONOMOUS_SEND_ENABLED) {
+      context.addIssue({
+        code: "custom",
+        message: "Autonomous sending is prohibited during the controlled pilot.",
+        path: ["AUTONOMOUS_SEND_ENABLED"]
+      });
+    }
+
+    if (
+      environment.EMAIL_SEND_ENABLED &&
+      !environment.GLOBAL_DRY_RUN &&
+      environment.GMAIL_DELIVERY_MODE === "production" &&
+      !environment.PILOT_MODE
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Production email remains restricted to the controlled pilot.",
+        path: ["PILOT_MODE"]
+      });
+    }
+
     if (
       environment.NODE_ENV === "production" &&
       (environment.BETTER_AUTH_SECRET === undefined || environment.BETTER_AUTH_SECRET.length < 32)
@@ -251,6 +293,10 @@ export function publicSafetyConfiguration(environment: ServerEnvironment) {
     emailSendEnabled: environment.EMAIL_SEND_ENABLED,
     gmailDeliveryMode: environment.GMAIL_DELIVERY_MODE,
     inboundProcessingEnabled: environment.INBOUND_PROCESSING_ENABLED,
+    pilotDailyEmailCap: environment.PILOT_DAILY_EMAIL_CAP,
+    pilotHumanApprovalRequired: environment.PILOT_HUMAN_APPROVAL_REQUIRED,
+    pilotMode: environment.PILOT_MODE,
+    pilotTargetLeads: environment.PILOT_TARGET_LEADS,
     requiredWebsite: environment.REQUIRED_OUTREACH_WEBSITE
   } as const;
 }
