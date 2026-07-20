@@ -14,3 +14,4 @@ test-results/
 Thumbs.db
 packages/db/.pglite/
 deploy/runtime.env
+deploy/local.env

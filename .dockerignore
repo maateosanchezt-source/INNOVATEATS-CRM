@@ -11,6 +11,7 @@
 **/tests
 coverage
 deploy/runtime.env
+deploy/local.env
 docs
 node_modules
 playwright-report

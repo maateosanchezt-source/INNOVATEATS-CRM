@@ -42,6 +42,8 @@ jobs:
           GLOBAL_DRY_RUN: "true"
           EMAIL_SEND_ENABLED: "false"
           AUTONOMOUS_SEND_ENABLED: "false"
+      - run: pnpm local:prepare -- --host=127.0.0.1
+      - run: pnpm local:config
       - run: docker build --file apps/web/Dockerfile --target web-runtime --tag innovateats-crm-web:ci .
       - run: docker build --file apps/worker/Dockerfile --target worker-runtime --tag innovateats-crm-worker:ci .
 

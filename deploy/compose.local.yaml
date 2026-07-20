@@ -1,0 +1,121 @@
+name: innovateats-crm-local
+
+x-application-runtime: &application-runtime
+  env_file:
+    - local.env
+  init: true
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+
+services:
+  postgres:
+    image: postgres:18.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: innovateats
+      POSTGRES_USER: innovateats
+      POSTGRES_PASSWORD: ${LOCAL_POSTGRES_PASSWORD:?local database password is required}
+      PGDATA: /var/lib/postgresql/18/docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U innovateats -d innovateats"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+
+  temporal:
+    image: temporalio/auto-setup:1.29.7
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: innovateats
+      POSTGRES_PWD: ${LOCAL_POSTGRES_PASSWORD:?local database password is required}
+      POSTGRES_SEEDS: postgres
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+    volumes:
+      - ../config/temporal:/etc/temporal/config/dynamicconfig:ro
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+    ports:
+      - "127.0.0.1:${TEMPORAL_HOST_PORT:-7233}:7233"
+
+  temporal-ui:
+    image: temporalio/ui:2.50.0
+    restart: unless-stopped
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: ${APP_URL}
+    ports:
+      - "127.0.0.1:${TEMPORAL_UI_HOST_PORT:-8233}:8080"
+
+  bootstrap:
+    build:
+      context: ..
+      dockerfile: apps/worker/Dockerfile
+      target: worker-runtime
+    image: innovateats-crm-worker:local
+    env_file:
+      - local.env
+    init: true
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    command: ["node", "packages/db/dist/bootstrap-cli.js"]
+
+  web:
+    <<: *application-runtime
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      target: web-runtime
+    image: innovateats-crm-web:local
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    ports:
+      - "${WEB_BIND_ADDRESS:-0.0.0.0}:${WEB_HOST_PORT:-3000}:3000"
+
+  worker:
+    <<: *application-runtime
+    build:
+      context: ..
+      dockerfile: apps/worker/Dockerfile
+      target: worker-runtime
+    image: innovateats-crm-worker:local
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+      temporal:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WORKER_HOST_PORT:-3002}:3001"
+
+volumes:
+  postgres-data:
