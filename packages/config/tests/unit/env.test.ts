@@ -15,6 +15,8 @@ describe("server environment", () => {
     expect(publicSafetyConfiguration(environment)).toEqual({
       authorizedEmail: "maateosanchezt@gmail.com",
       autonomousSendEnabled: false,
+      discoveryEnabled: false,
+      discoveryTargetCandidates: 500,
       dryRun: true,
       emailSendEnabled: false,
       gmailDeliveryMode: "dry_run",
@@ -26,6 +28,21 @@ describe("server environment", () => {
       requiredWebsite: "https://innovateats.com"
     });
     expect(environment.EMAIL_VERIFIER_PROVIDER).toBe("disabled");
+  });
+
+  it("requires an Apify token only when discovery is enabled", () => {
+    expect(() =>
+      parseServerEnvironment({
+        DISCOVERY_ENABLED: "true"
+      })
+    ).toThrow(/APIFY_API_TOKEN/u);
+
+    const environment = parseServerEnvironment({
+      DISCOVERY_ENABLED: "true",
+      APIFY_API_TOKEN: "apify-test-token"
+    });
+    expect(environment.DISCOVERY_ENABLED).toBe(true);
+    expect(environment.DISCOVERY_TARGET_CANDIDATES).toBe(500);
   });
 
   it("parses the string false as false", () => {

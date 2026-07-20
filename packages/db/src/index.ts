@@ -104,5 +104,19 @@ export {
   type DataExportBundle,
   type ErasureResult
 } from "./repositories/data-governance.js";
+export {
+  DiscoveryStateError,
+  PostgresDiscoveryRepository,
+  type CandidateSourceInput,
+  type ClaimProviderActionInput,
+  type CompleteDiscoveryRunInput,
+  type DiscoveredCandidateInput,
+  type DiscoveryCampaignView,
+  type DiscoveryCandidateView,
+  type DiscoveryRunContext,
+  type DiscoveryRunRecord,
+  type DiscoverySeedRecord,
+  type ProviderActionRecord
+} from "./repositories/discovery.js";
 export { schema } from "./schema/index.js";
 export { seedFoundations } from "./seed-data.js";

@@ -8,6 +8,7 @@ import {
 import {
   createDatabaseClient,
   PostgresDataGovernanceRepository,
+  PostgresDiscoveryRepository,
   PostgresContactRepository,
   PostgresComplianceRepository,
   PostgresCrmRepository,
@@ -95,6 +96,10 @@ export function safetyControlService(): SafetyControlService {
 
 export function crmRepository(): PostgresCrmRepository {
   return new PostgresCrmRepository(databaseClient().db);
+}
+
+export function discoveryRepository(): PostgresDiscoveryRepository {
+  return new PostgresDiscoveryRepository(databaseClient().db);
 }
 
 export function researchRepository(): PostgresResearchRepository {

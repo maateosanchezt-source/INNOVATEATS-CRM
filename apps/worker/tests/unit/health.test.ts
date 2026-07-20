@@ -43,7 +43,8 @@ describe("worker health", () => {
       lifecycle: "starting",
       temporalConnected: false,
       dryRun: true,
-      emailSendEnabled: false
+      emailSendEnabled: false,
+      discoveryEnabled: false
     });
 
     const response = await fetchHealth(port);
@@ -62,7 +63,8 @@ describe("worker health", () => {
       lifecycle: "ready",
       temporalConnected: true,
       dryRun: true,
-      emailSendEnabled: false
+      emailSendEnabled: false,
+      discoveryEnabled: true
     });
 
     const response = await fetchHealth(port);

@@ -353,6 +353,12 @@ describe("database migrations", () => {
           'message_approvals',
           'campaigns',
           'compliance_decisions',
+          'discovery_campaigns',
+          'discovery_candidate_sources',
+          'discovery_candidates',
+          'discovery_provider_actions',
+          'discovery_runs',
+          'discovery_seeds',
           'senders',
           'gmail_oauth_states',
           'gmail_credentials',
@@ -381,6 +387,12 @@ describe("database migrations", () => {
       "compliance_decisions",
       "contact_verifications",
       "contacts",
+      "discovery_campaigns",
+      "discovery_candidate_sources",
+      "discovery_candidates",
+      "discovery_provider_actions",
+      "discovery_runs",
+      "discovery_seeds",
       "evidence",
       "feature_flags",
       "founders",
@@ -429,6 +441,120 @@ describe("database migrations", () => {
     await expect(database.exec("UPDATE audit_log SET action = 'test.tampered'")).rejects.toThrow(
       /append-only/
     );
+  });
+
+  it("protects discovery provenance, provider actions, and one-way decisions", async () => {
+    await database.exec(`
+      INSERT INTO regions (
+        id, code, name, policy_mode, enabled
+      ) VALUES (
+        'd1000000-0000-4000-8000-000000000001',
+        'DISCOVERY_TEST',
+        'Discovery test',
+        'draft_only',
+        true
+      );
+
+      INSERT INTO discovery_campaigns (
+        id, name, region_id, created_by
+      ) VALUES (
+        'd2000000-0000-4000-8000-000000000001',
+        'Discovery fixture',
+        'd1000000-0000-4000-8000-000000000001',
+        'test'
+      );
+
+      INSERT INTO discovery_seeds (
+        id, campaign_id, kind, value, normalized_value, track
+      ) VALUES (
+        'd3000000-0000-4000-8000-000000000001',
+        'd2000000-0000-4000-8000-000000000001',
+        'keyword',
+        'food startup Spain',
+        'food startup spain',
+        'food_brand'
+      );
+
+      INSERT INTO discovery_runs (
+        id, campaign_id, workflow_id, idempotency_key, trigger, queued_by
+      ) VALUES (
+        'd4000000-0000-4000-8000-000000000001',
+        'd2000000-0000-4000-8000-000000000001',
+        'instagram-discovery:d4000000-0000-4000-8000-000000000001',
+        'test:d4000000-0000-4000-8000-000000000001',
+        'manual',
+        'test'
+      );
+
+      INSERT INTO discovery_provider_actions (
+        id, run_id, seed_id, action_key, provider, actor_id, input_hash,
+        status, provider_run_id, dataset_id, item_count, started_at, completed_at
+      ) VALUES (
+        'd5000000-0000-4000-8000-000000000001',
+        'd4000000-0000-4000-8000-000000000001',
+        'd3000000-0000-4000-8000-000000000001',
+        'fixture-action',
+        'apify',
+        'fixture-actor',
+        '${"d".repeat(64)}',
+        'succeeded',
+        'fixture-provider-run',
+        'fixture-dataset',
+        1,
+        now(),
+        now()
+      );
+
+      INSERT INTO discovery_candidates (
+        id, campaign_id, first_run_id, username, profile_url, track, snapshot_json
+      ) VALUES (
+        'd6000000-0000-4000-8000-000000000001',
+        'd2000000-0000-4000-8000-000000000001',
+        'd4000000-0000-4000-8000-000000000001',
+        'fixture.food',
+        'https://www.instagram.com/fixture.food/',
+        'food_brand',
+        '{"username":"fixture.food"}'
+      );
+
+      INSERT INTO discovery_candidate_sources (
+        candidate_id, run_id, seed_id, provider, provider_result_id
+      ) VALUES (
+        'd6000000-0000-4000-8000-000000000001',
+        'd4000000-0000-4000-8000-000000000001',
+        'd3000000-0000-4000-8000-000000000001',
+        'apify',
+        'fixture-result'
+      );
+    `);
+
+    await expect(
+      database.exec(`
+        UPDATE discovery_provider_actions
+        SET item_count = 2
+        WHERE id = 'd5000000-0000-4000-8000-000000000001'
+      `)
+    ).rejects.toThrow(/completion is immutable/);
+    await expect(database.exec("DELETE FROM discovery_candidate_sources")).rejects.toThrow(
+      /append-only/
+    );
+
+    await database.exec(`
+      UPDATE discovery_candidates
+      SET
+        status = 'approved',
+        decision_reason = 'Matches the food startup ICP',
+        decided_by = 'test',
+        decided_at = now()
+      WHERE id = 'd6000000-0000-4000-8000-000000000001'
+    `);
+    await expect(
+      database.exec(`
+        UPDATE discovery_candidates
+        SET status = 'rejected'
+        WHERE id = 'd6000000-0000-4000-8000-000000000001'
+      `)
+    ).rejects.toThrow(/decision is one-way/);
   });
 
   it("permits only one active kill switch per scope", async () => {

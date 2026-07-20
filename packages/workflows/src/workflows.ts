@@ -1,11 +1,16 @@
 import { condition, defineSignal, proxyActivities, setHandler } from "@temporalio/workflow";
 
-import type { OutreachWorkflowInput, SequenceStopReason } from "@innovateats/shared";
+import type {
+  DiscoveryWorkflowInput,
+  OutreachWorkflowInput,
+  SequenceStopReason
+} from "@innovateats/shared";
 
 import {
   noResponseWaitMilliseconds,
   touchSteps,
   waitMillisecondsUntil,
+  type DiscoveryActivities,
   type OutreachActivities,
   phaseZeroReadiness,
   type SystemReadinessResult
@@ -37,8 +42,22 @@ const dispatchActivities = proxyActivities<Pick<OutreachActivities, "dispatchTou
   retry: { maximumAttempts: 1 }
 });
 
+const discoveryActivities = proxyActivities<DiscoveryActivities>({
+  startToCloseTimeout: "15 minutes",
+  retry: {
+    initialInterval: "5 seconds",
+    backoffCoefficient: 2,
+    maximumInterval: "30 seconds",
+    maximumAttempts: 3
+  }
+});
+
 export async function systemReadinessWorkflow(): Promise<SystemReadinessResult> {
   return phaseZeroReadiness(new Date(Date.now()).toISOString());
+}
+
+export async function instagramDiscoveryWorkflow(input: DiscoveryWorkflowInput): Promise<void> {
+  await discoveryActivities.executeInstagramDiscovery(input.runId);
 }
 
 export async function outreachSequenceWorkflow(input: OutreachWorkflowInput): Promise<void> {

@@ -1600,6 +1600,119 @@ textarea:focus {
   min-width: 320px;
 }
 
+.discoveryCampaignGrid,
+.candidateGrid {
+  display: grid;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.discoveryCampaignGrid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.candidateGrid {
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+}
+
+.campaignStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.campaignStats span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.inlineAction,
+.candidateDecision {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.inlineAction {
+  justify-items: start;
+}
+
+.candidateCard {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px;
+  background: var(--panel-raised);
+}
+
+.candidateHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.candidateHeading > div {
+  display: grid;
+  gap: 4px;
+}
+
+.candidateHeading a {
+  color: var(--green);
+  font-size: 1.08rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.candidateBio {
+  min-height: 4.5em;
+  margin: 18px 0 4px;
+  color: var(--muted);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.candidateFlags {
+  margin: 14px 0 0;
+  color: var(--amber);
+  font-size: 0.82rem;
+}
+
+.candidateDecision input {
+  width: 100%;
+}
+
+.decisionButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.decisionButtons button {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 9px 12px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.decisionButtons button:first-child {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.decisionButtons button:last-child {
+  border-color: var(--red);
+  color: var(--red);
+}
+
 @media (max-width: 800px) {
   .cardGrid {
     grid-template-columns: repeat(2, 1fr);

@@ -70,6 +70,25 @@ const serverEnvironmentSchema = z
     OPENAI_QA_MODEL: optionalNonEmptyString,
     OPENAI_CLASSIFIER_MODEL: optionalNonEmptyString,
 
+    DISCOVERY_ENABLED: booleanFromEnvironment.default(false),
+    APIFY_API_TOKEN: optionalNonEmptyString,
+    APIFY_API_BASE_URL: z.url().default("https://api.apify.com/v2"),
+    APIFY_INSTAGRAM_SEARCH_ACTOR_ID: z
+      .string()
+      .regex(/^[a-z0-9_-]+~[a-z0-9_-]+$/u)
+      .default("apify~instagram-search-scraper"),
+    APIFY_INSTAGRAM_PROFILE_ACTOR_ID: z
+      .string()
+      .regex(/^[a-z0-9_-]+~[a-z0-9_-]+$/u)
+      .default("apify~instagram-profile-scraper"),
+    APIFY_INSTAGRAM_FOLLOWERS_ACTOR_ID: z
+      .string()
+      .regex(/^[a-z0-9_-]+~[a-z0-9_-]+$/u)
+      .default("scraping_solutions~instagram-scraper-followers-following-no-cookies"),
+    DISCOVERY_SCHEDULER_INTERVAL_SECONDS: z.coerce.number().int().min(30).max(3_600).default(60),
+    DISCOVERY_DAILY_CANDIDATE_CAP: z.coerce.number().int().min(10).max(500).default(100),
+    DISCOVERY_TARGET_CANDIDATES: z.coerce.number().int().min(1).max(5_000).default(500),
+
     GMAIL_SENDER_EMAIL: z.email().optional().or(z.literal("")),
     GMAIL_OAUTH_CLIENT_ID: optionalNonEmptyString,
     GMAIL_OAUTH_CLIENT_SECRET: optionalNonEmptyString,
@@ -147,6 +166,14 @@ const serverEnvironmentSchema = z
         code: "custom",
         message: "Autonomous sending cannot be enabled while email sending is disabled.",
         path: ["AUTONOMOUS_SEND_ENABLED"]
+      });
+    }
+
+    if (environment.DISCOVERY_ENABLED && environment.APIFY_API_TOKEN === undefined) {
+      context.addIssue({
+        code: "custom",
+        message: "Instagram discovery requires APIFY_API_TOKEN.",
+        path: ["APIFY_API_TOKEN"]
       });
     }
 
@@ -303,6 +330,8 @@ export function publicSafetyConfiguration(environment: ServerEnvironment) {
     emailSendEnabled: environment.EMAIL_SEND_ENABLED,
     gmailDeliveryMode: environment.GMAIL_DELIVERY_MODE,
     inboundProcessingEnabled: environment.INBOUND_PROCESSING_ENABLED,
+    discoveryEnabled: environment.DISCOVERY_ENABLED,
+    discoveryTargetCandidates: environment.DISCOVERY_TARGET_CANDIDATES,
     pilotDailyEmailCap: environment.PILOT_DAILY_EMAIL_CAP,
     pilotHumanApprovalRequired: environment.PILOT_HUMAN_APPROVAL_REQUIRED,
     pilotMode: environment.PILOT_MODE,

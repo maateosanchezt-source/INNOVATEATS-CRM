@@ -5,6 +5,7 @@ import {
   ContactAssociationError,
   ContactNotFoundError,
   DataGovernanceStateError,
+  DiscoveryStateError,
   EvidenceNotFoundError,
   InboundStateError,
   InvalidLeadTransitionError,
@@ -112,6 +113,13 @@ export function apiErrorResponse(error: unknown): Response {
   if (error instanceof DataGovernanceStateError) {
     return Response.json(
       { error: { code: "invalid_data_governance_state", message: error.message } },
+      { status: 409 }
+    );
+  }
+
+  if (error instanceof DiscoveryStateError) {
+    return Response.json(
+      { error: { code: "invalid_discovery_state", message: error.message } },
       { status: 409 }
     );
   }

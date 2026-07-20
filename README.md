@@ -2,7 +2,7 @@
 
 Internal, single-tenant operating system for evidence-based CPG research, compliant outreach, and high-quality sales handoff.
 
-## Current status: Phase 10
+## Current status: Phase 11
 
 Foundations establish:
 
@@ -112,6 +112,17 @@ Phase 10 adds a production-equivalent local deployment:
 - loopback-only infrastructure ports and a conflict-free worker health endpoint;
 - fail-closed dry-run acceptance checks before Google OAuth is connected.
 
+Phase 11 adds controlled Instagram lead discovery:
+
+- Spain-first campaigns for early food brands and emerging dropshipping founders;
+- provider-neutral Apify adapters for public user search, profile enrichment, and optional
+  follower/following sampling;
+- durable Temporal execution with a persisted idempotency key before every paid actor launch;
+- target, daily-volume, follower, recency, and per-seed limits;
+- minimized public profile snapshots with permanent source provenance and no scraped email field;
+- a human yes/no review queue; discovery never sends Instagram DMs or email;
+- run, provider-action, candidate, and decision audit trails with protected lifecycle transitions.
+
 Research, contact enrichment, message generation, and external email remain disabled by default.
 Inbound Gmail reading also remains disabled until the restricted scope is explicitly approved.
 Dry-run scheduling can exercise the complete durable outbound path without contacting Gmail.
@@ -138,6 +149,7 @@ Open:
 
 - Web control plane: <http://localhost:3000>
 - Lead inbox: <http://localhost:3000/leads>
+- Discovery review: <http://localhost:3000/discovery>
 - Reply inbox: <http://localhost:3000/replies>
 - Worker health: <http://localhost:3001/health>
 - Temporal UI: <http://localhost:8080>
@@ -179,6 +191,7 @@ Evaluation and pilot-readiness verification is documented in
 `docs/testing/phase-8-verification.md`.
 Production-runtime verification is documented in `docs/testing/phase-9-verification.md`.
 Local-deployment verification is documented in `docs/testing/phase-10-verification.md`.
+Instagram-discovery verification is documented in `docs/testing/phase-11-verification.md`.
 
 ## Production handoff
 
