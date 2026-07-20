@@ -18,8 +18,10 @@ describe("production deployment artifacts", () => {
     expect(web).toContain("HEALTHCHECK");
     expect(web).not.toContain('CMD ["pnpm", "--filter", "@innovateats/web", "dev"]');
     expect(worker).toContain("AS worker-runtime");
+    expect(worker).toContain("node:22.23.0-bookworm-slim");
     expect(worker).toContain("USER worker");
     expect(worker).toContain("HEALTHCHECK");
+    expect(worker).not.toContain("alpine");
     expect(worker).not.toContain('CMD ["pnpm", "--filter", "@innovateats/worker", "dev"]');
   });
 
@@ -43,5 +45,31 @@ describe("production deployment artifacts", () => {
     expect(environment).toContain("PRODUCTION_SEND_APPROVED=false");
     expect(environment).toContain("GMAIL_DELIVERY_MODE=dry_run");
     expect(environment).not.toMatch(/sk-[A-Za-z0-9_-]{20,}/u);
+  });
+
+  it("packages a LAN deployment with generated secrets and isolated service ports", async () => {
+    const [compose, environment, generator, gitignore, dynamicConfig] = await Promise.all([
+      repositoryFile("deploy/compose.local.yaml"),
+      repositoryFile("deploy/local.env.example"),
+      repositoryFile("scripts/prepare-local-deployment.mjs"),
+      repositoryFile(".gitignore"),
+      repositoryFile("config/temporal/development-sql.yaml")
+    ]);
+
+    expect(compose).toContain("target: web-runtime");
+    expect(compose).toContain("target: worker-runtime");
+    expect(compose).toContain("service_completed_successfully");
+    expect(compose).toContain("temporalio/auto-setup:1.29.7");
+    expect(compose).toContain("../config/temporal:/etc/temporal/config/dynamicconfig:ro");
+    expect(compose).toContain("127.0.0.1:${WORKER_HOST_PORT:-3002}:3001");
+    expect(compose).toContain("${WEB_BIND_ADDRESS:-0.0.0.0}");
+    expect(compose).not.toContain("minio");
+    expect(environment).toContain("GLOBAL_DRY_RUN=true");
+    expect(environment).toContain("EMAIL_SEND_ENABLED=false");
+    expect(environment).toContain("BETTER_AUTH_SECRET=GENERATE_AUTH_SECRET");
+    expect(generator).toContain('randomBytes(32).toString("base64url")');
+    expect(generator).toContain('flag: "wx"');
+    expect(gitignore).toContain("deploy/local.env");
+    expect(dynamicConfig).toContain("limit.maxIDLength:");
   });
 });

@@ -27,7 +27,13 @@
     "db:migrate:check": "pnpm --filter @innovateats/db migrate:check",
     "db:seed": "pnpm --filter @innovateats/db seed",
     "db:studio": "pnpm --filter @innovateats/db studio",
-    "deploy:preflight": "pnpm --filter @innovateats/config deploy:preflight"
+    "deploy:preflight": "pnpm --filter @innovateats/config deploy:preflight",
+    "local:prepare": "node scripts/prepare-local-deployment.mjs",
+    "local:config": "docker compose --env-file deploy/local.env -f deploy/compose.local.yaml config --quiet",
+    "local:build": "docker compose --env-file deploy/local.env -f deploy/compose.local.yaml build",
+    "local:up": "docker compose --env-file deploy/local.env -f deploy/compose.local.yaml up -d",
+    "local:status": "docker compose --env-file deploy/local.env -f deploy/compose.local.yaml ps",
+    "local:down": "docker compose --env-file deploy/local.env -f deploy/compose.local.yaml down"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

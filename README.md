@@ -2,7 +2,7 @@
 
 Internal, single-tenant operating system for evidence-based CPG research, compliant outreach, and high-quality sales handoff.
 
-## Current status: Phase 9
+## Current status: Phase 10
 
 Foundations establish:
 
@@ -104,6 +104,14 @@ Phase 9 adds a production deployment handoff:
 - provider-neutral hardened Compose orchestration with no embedded production database;
 - secret-safe preflight validation and a fail-closed runtime template.
 
+Phase 10 adds a production-equivalent local deployment:
+
+- production web and worker images on a private LAN endpoint;
+- local PostgreSQL and Temporal with persistent volumes;
+- generated, uncommitted local secrets and an idempotent preparation command;
+- loopback-only infrastructure ports and a conflict-free worker health endpoint;
+- fail-closed dry-run acceptance checks before Google OAuth is connected.
+
 Research, contact enrichment, message generation, and external email remain disabled by default.
 Inbound Gmail reading also remains disabled until the restricted scope is explicitly approved.
 Dry-run scheduling can exercise the complete durable outbound path without contacting Gmail.
@@ -120,7 +128,7 @@ Production delivery is not approved.
 ```bash
 cp .env.example .env
 pnpm install --frozen-lockfile
-docker compose up -d postgres temporal temporal-ui object-storage mailpit
+docker compose up -d postgres temporal temporal-ui mailpit
 pnpm db:migrate
 pnpm db:seed
 pnpm dev
@@ -170,6 +178,7 @@ Regional policy and manual-platform verification is documented in
 Evaluation and pilot-readiness verification is documented in
 `docs/testing/phase-8-verification.md`.
 Production-runtime verification is documented in `docs/testing/phase-9-verification.md`.
+Local-deployment verification is documented in `docs/testing/phase-10-verification.md`.
 
 ## Production handoff
 
@@ -183,3 +192,5 @@ pnpm deploy:preflight -- --env-file=deploy/runtime.env --mode=dry_run
 The exact infrastructure and secret inputs are documented in
 `docs/runbooks/deployment-handoff.md`. Real email remains a separate, explicitly approved
 promotion.
+
+For a private LAN deployment, follow `docs/runbooks/local-deployment.md`.
