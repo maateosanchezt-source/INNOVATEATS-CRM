@@ -7,7 +7,9 @@ const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultN
 export const user = pgTable(
   "user",
   {
-    id: text("id").primaryKey(),
+    id: text("id")
+      .default(sql`gen_random_uuid()::text`)
+      .primaryKey(),
     name: text("name").notNull(),
     email: text("email").notNull(),
     emailVerified: boolean("email_verified").default(false).notNull(),
@@ -21,7 +23,9 @@ export const user = pgTable(
 export const session = pgTable(
   "session",
   {
-    id: text("id").primaryKey(),
+    id: text("id")
+      .default(sql`gen_random_uuid()::text`)
+      .primaryKey(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     token: text("token").notNull(),
     createdAt: createdAt(),
@@ -41,7 +45,9 @@ export const session = pgTable(
 export const account = pgTable(
   "account",
   {
-    id: text("id").primaryKey(),
+    id: text("id")
+      .default(sql`gen_random_uuid()::text`)
+      .primaryKey(),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(),
     userId: text("user_id")
@@ -66,7 +72,9 @@ export const account = pgTable(
 export const verification = pgTable(
   "verification",
   {
-    id: text("id").primaryKey(),
+    id: text("id")
+      .default(sql`gen_random_uuid()::text`)
+      .primaryKey(),
     identifier: text("identifier").notNull(),
     value: text("value").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),

@@ -428,6 +428,40 @@ describe("database migrations", () => {
     ]);
   });
 
+  it("generates IDs for Better Auth default inserts", async () => {
+    const userResult = await database.query<{ id: string }>(`
+      INSERT INTO "user" (name, email)
+      VALUES ('Mateo', 'maateosanchezt@gmail.com')
+      RETURNING id
+    `);
+    const userId = userResult.rows[0]?.id;
+
+    const sessionResult = await database.query<{ id: string }>(`
+      INSERT INTO "session" (expires_at, token, user_id)
+      VALUES (now() + interval '8 hours', 'auth-default-session', '${userId}')
+      RETURNING id
+    `);
+    const accountResult = await database.query<{ id: string }>(`
+      INSERT INTO account (account_id, provider_id, user_id)
+      VALUES ('google-account', 'google', '${userId}')
+      RETURNING id
+    `);
+    const verificationResult = await database.query<{ id: string }>(`
+      INSERT INTO verification (identifier, value, expires_at)
+      VALUES ('oauth-state', '{}', now() + interval '10 minutes')
+      RETURNING id
+    `);
+
+    for (const id of [
+      userId,
+      sessionResult.rows[0]?.id,
+      accountResult.rows[0]?.id,
+      verificationResult.rows[0]?.id
+    ]) {
+      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu);
+    }
+  });
+
   it("makes audit rows append-only", async () => {
     await database.exec(`
       INSERT INTO audit_log (
