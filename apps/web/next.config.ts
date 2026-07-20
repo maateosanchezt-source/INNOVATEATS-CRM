@@ -18,7 +18,8 @@ const nextConfig: NextConfig = {
     "@innovateats/workflows"
   ],
   experimental: {
-    typedEnv: true
+    typedEnv: true,
+    webpackMemoryOptimizations: true
   }
 };
 
