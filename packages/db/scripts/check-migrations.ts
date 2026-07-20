@@ -82,6 +82,24 @@ try {
     throw new Error("Evaluation and pilot-readiness migration tables are incomplete.");
   }
 
+  const discoveryTables = await database.query<{ table_name: string }>(`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name IN (
+        'discovery_campaigns',
+        'discovery_seeds',
+        'discovery_runs',
+        'discovery_provider_actions',
+        'discovery_candidates',
+        'discovery_candidate_sources'
+      )
+    ORDER BY table_name
+  `);
+  if (discoveryTables.rows.length !== 6) {
+    throw new Error("Instagram discovery migration tables are incomplete.");
+  }
+
   process.stdout.write(`Verified ${migrationNames.length} migration(s) on an empty database.\n`);
 } finally {
   await database.close();

@@ -1,5 +1,13 @@
 export { account, session, user, verification } from "./auth.js";
 export {
+  discoveryCampaigns,
+  discoveryCandidateSources,
+  discoveryCandidates,
+  discoveryProviderActions,
+  discoveryRuns,
+  discoverySeeds
+} from "./discovery.js";
+export {
   agentRuns,
   campaigns,
   complianceDecisions,
@@ -49,6 +57,14 @@ export {
 } from "./foundations.js";
 
 import { account, session, user, verification } from "./auth.js";
+import {
+  discoveryCampaigns,
+  discoveryCandidateSources,
+  discoveryCandidates,
+  discoveryProviderActions,
+  discoveryRuns,
+  discoverySeeds
+} from "./discovery.js";
 import {
   agentRuns,
   campaigns,
@@ -106,6 +122,12 @@ export const schema = {
   complianceDecisions,
   contacts,
   contactVerifications,
+  discoveryCampaigns,
+  discoveryCandidateSources,
+  discoveryCandidates,
+  discoveryProviderActions,
+  discoveryRuns,
+  discoverySeeds,
   evidence,
   evalRuns,
   featureFlags,

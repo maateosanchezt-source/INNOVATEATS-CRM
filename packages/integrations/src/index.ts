@@ -13,6 +13,14 @@ export class PhaseZeroProviderDisabledError extends Error {
 }
 
 export {
+  ApifyInstagramProvider,
+  ApifyRequestError,
+  FetchApifyTransport,
+  type ApifyHttpTransport,
+  type ApifyInstagramProviderConfiguration,
+  type ApifyRunReference
+} from "./apify-instagram.js";
+export {
   DisabledEmailVerificationProvider,
   FixtureEmailVerificationProvider,
   NodeMxResolver,

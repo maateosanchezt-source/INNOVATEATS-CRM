@@ -28,6 +28,10 @@ export interface OutreachActivities {
   completeSequence(sequenceId: string): Promise<void>;
 }
 
+export interface DiscoveryActivities {
+  executeInstagramDiscovery(runId: string): Promise<void>;
+}
+
 export const touchSteps = [1, 2, 3] as const;
 export const noResponseWaitMilliseconds = 7 * 24 * 60 * 60 * 1_000;
 

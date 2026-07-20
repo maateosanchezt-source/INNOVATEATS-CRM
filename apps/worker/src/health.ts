@@ -7,6 +7,7 @@ export interface WorkerHealth {
   readonly temporalConnected: boolean;
   readonly dryRun: boolean;
   readonly emailSendEnabled: boolean;
+  readonly discoveryEnabled: boolean;
   readonly error?: string;
 }
 
