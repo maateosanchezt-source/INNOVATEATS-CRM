@@ -13,3 +13,4 @@ test-results/
 .DS_Store
 Thumbs.db
 packages/db/.pglite/
+deploy/runtime.env

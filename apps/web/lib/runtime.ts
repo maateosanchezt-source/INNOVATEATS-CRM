@@ -2,6 +2,7 @@ import { createInternalAuth } from "@innovateats/auth";
 import {
   googleOAuthIsConfigured,
   loadServerEnvironment,
+  temporalConnectionConfiguration,
   type ServerEnvironment
 } from "@innovateats/config";
 import {
@@ -157,11 +158,12 @@ export function gmailOAuth(): GoogleGmailOAuth {
 
 export function temporalClient(): Promise<Client> {
   const runtime = singletons();
-  runtime.temporal ??= Connection.connect({ address: environment().TEMPORAL_ADDRESS }).then(
+  const config = environment();
+  runtime.temporal ??= Connection.connect(temporalConnectionConfiguration(config)).then(
     (connection) =>
       new Client({
         connection,
-        namespace: environment().TEMPORAL_NAMESPACE
+        namespace: config.TEMPORAL_NAMESPACE
       })
   );
   return runtime.temporal;

@@ -2,7 +2,7 @@
 
 Internal, single-tenant operating system for evidence-based CPG research, compliant outreach, and high-quality sales handoff.
 
-## Current status: Phase 7
+## Current status: Phase 9
 
 Foundations establish:
 
@@ -88,6 +88,22 @@ Phase 7 adds versioned regional policy and manual platform workflows:
 - manual-only LinkedIn, Instagram, Kickstarter, Indiegogo and Upwork draft/copy/open/mark ledger,
   with no login, browser navigation, posting, DM or application automation.
 
+Phase 8 adds deterministic acceptance and controlled pilot readiness:
+
+- a versioned 100-lead regional dataset, golden cases A-J and strict quality thresholds;
+- immutable evaluation, prompt, pilot, checkpoint and go-live evidence records;
+- funnel, quality, deliverability and cost metrics plus a readiness control room;
+- production gates for a 50-lead US/UK corporate pilot with human approval and reviews;
+- authenticated owner export and guarded active-PII anonymization.
+
+Phase 9 adds a production deployment handoff:
+
+- non-root standalone web and compiled worker OCI targets with healthchecks;
+- idempotent migration/seed bootstrap before application startup;
+- Temporal TLS/API-key support shared by web and worker;
+- provider-neutral hardened Compose orchestration with no embedded production database;
+- secret-safe preflight validation and a fail-closed runtime template.
+
 Research, contact enrichment, message generation, and external email remain disabled by default.
 Inbound Gmail reading also remains disabled until the restricted scope is explicitly approved.
 Dry-run scheduling can exercise the complete durable outbound path without contacting Gmail.
@@ -151,3 +167,19 @@ Gmail and durable-sequence verification is documented in `docs/testing/phase-5-v
 Reply and handoff verification is documented in `docs/testing/phase-6-verification.md`.
 Regional policy and manual-platform verification is documented in
 `docs/testing/phase-7-verification.md`.
+Evaluation and pilot-readiness verification is documented in
+`docs/testing/phase-8-verification.md`.
+Production-runtime verification is documented in `docs/testing/phase-9-verification.md`.
+
+## Production handoff
+
+Production packaging is provider-neutral. Start with the checked-in dry-run template:
+
+```text
+copy deploy\runtime.env.example deploy\runtime.env
+pnpm deploy:preflight -- --env-file=deploy/runtime.env --mode=dry_run
+```
+
+The exact infrastructure and secret inputs are documented in
+`docs/runbooks/deployment-handoff.md`. Real email remains a separate, explicitly approved
+promotion.
