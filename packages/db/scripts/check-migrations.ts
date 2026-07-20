@@ -100,6 +100,19 @@ try {
     throw new Error("Instagram discovery migration tables are incomplete.");
   }
 
+  const authVerification = await database.query<{ id: string }>(`
+    INSERT INTO verification (identifier, value, expires_at)
+    VALUES ('migration-check', '{}', now() + interval '10 minutes')
+    RETURNING id
+  `);
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(
+      authVerification.rows[0]?.id ?? ""
+    )
+  ) {
+    throw new Error("Auth verification ID default is not a UUID.");
+  }
+
   process.stdout.write(`Verified ${migrationNames.length} migration(s) on an empty database.\n`);
 } finally {
   await database.close();
