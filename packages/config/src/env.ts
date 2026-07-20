@@ -50,6 +50,8 @@ const serverEnvironmentSchema = z
     TEMPORAL_ADDRESS: z.string().min(1).default("localhost:7233"),
     TEMPORAL_NAMESPACE: z.string().min(1).default("default"),
     TEMPORAL_TASK_QUEUE: z.string().min(1).default("innovateats-main"),
+    TEMPORAL_TLS_ENABLED: booleanFromEnvironment.default(false),
+    TEMPORAL_API_KEY: optionalNonEmptyString,
 
     S3_ENDPOINT: z.url().default("http://localhost:9000"),
     S3_BUCKET: z.string().min(1).default("innovateats"),
@@ -145,6 +147,14 @@ const serverEnvironmentSchema = z
         code: "custom",
         message: "Autonomous sending cannot be enabled while email sending is disabled.",
         path: ["AUTONOMOUS_SEND_ENABLED"]
+      });
+    }
+
+    if (environment.TEMPORAL_API_KEY !== undefined && !environment.TEMPORAL_TLS_ENABLED) {
+      context.addIssue({
+        code: "custom",
+        message: "Temporal API-key authentication requires TLS.",
+        path: ["TEMPORAL_TLS_ENABLED"]
       });
     }
 
@@ -305,4 +315,12 @@ export function googleOAuthIsConfigured(environment: ServerEnvironment): boolean
   return (
     environment.GOOGLE_CLIENT_ID !== undefined && environment.GOOGLE_CLIENT_SECRET !== undefined
   );
+}
+
+export function temporalConnectionConfiguration(environment: ServerEnvironment) {
+  return {
+    address: environment.TEMPORAL_ADDRESS,
+    ...(environment.TEMPORAL_TLS_ENABLED ? { tls: true as const } : {}),
+    ...(environment.TEMPORAL_API_KEY === undefined ? {} : { apiKey: environment.TEMPORAL_API_KEY })
+  };
 }

@@ -26,7 +26,8 @@
     "db:migrate": "pnpm --filter @innovateats/db migrate",
     "db:migrate:check": "pnpm --filter @innovateats/db migrate:check",
     "db:seed": "pnpm --filter @innovateats/db seed",
-    "db:studio": "pnpm --filter @innovateats/db studio"
+    "db:studio": "pnpm --filter @innovateats/db studio",
+    "deploy:preflight": "pnpm --filter @innovateats/config deploy:preflight"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 
-import { loadServerEnvironment } from "@innovateats/config";
+import { loadServerEnvironment, temporalConnectionConfiguration } from "@innovateats/config";
 import { createDatabaseClient, type DatabaseClient } from "@innovateats/db";
 import { createLogger } from "@innovateats/observability";
 import { Client, Connection } from "@temporalio/client";
@@ -60,12 +60,9 @@ process.once("SIGTERM", () => {
 
 try {
   database = createDatabaseClient(environment.DATABASE_URL);
-  connection = await NativeConnection.connect({
-    address: environment.TEMPORAL_ADDRESS
-  });
-  clientConnection = await Connection.connect({
-    address: environment.TEMPORAL_ADDRESS
-  });
+  const temporalOptions = temporalConnectionConfiguration(environment);
+  connection = await NativeConnection.connect(temporalOptions);
+  clientConnection = await Connection.connect(temporalOptions);
   const temporal = new Client({
     connection: clientConnection,
     namespace: environment.TEMPORAL_NAMESPACE

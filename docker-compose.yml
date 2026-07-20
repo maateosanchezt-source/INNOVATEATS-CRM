@@ -71,6 +71,7 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      target: builder
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +87,7 @@ services:
       AUTONOMOUS_SEND_ENABLED: "false"
       GMAIL_INBOUND_OAUTH_APPROVED: "false"
       INBOUND_PROCESSING_ENABLED: "false"
+    command: ["pnpm", "--filter", "@innovateats/web", "dev"]
     ports:
       - "3000:3000"
 
@@ -93,6 +95,7 @@ services:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
+      target: builder
     depends_on:
       postgres:
         condition: service_healthy
@@ -112,6 +115,7 @@ services:
       GMAIL_INBOUND_OAUTH_APPROVED: "false"
       INBOUND_PROCESSING_ENABLED: "false"
       WORKER_HEALTH_PORT: 3001
+    command: ["pnpm", "--filter", "@innovateats/worker", "dev"]
     ports:
       - "3001:3001"
 
